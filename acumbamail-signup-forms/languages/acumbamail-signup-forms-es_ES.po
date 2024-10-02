@@ -1,0 +1,201 @@
+# Blank WordPress Pot
+# Copyright 2014 ...
+# This file is distributed under the GNU General Public License v3 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: acumbamail-signup-forms\n"
+"Report-Msgid-Bugs-To: Translator Name <translations@example.com>\n"
+"POT-Creation-Date: 2021-09-08 10:21+0200\n"
+"PO-Revision-Date: \n"
+"Last-Translator: Your Name <you@example.com>\n"
+"Language-Team: acumbamail\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Textdomain-Support: yesX-Generator: Poedit 1.6.4\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-KeywordsList: __;_e;esc_html_e;esc_html_x:1,2c;esc_html__;esc_attr_e;esc_attr_x:1,2c;esc_attr__;_ex:1,2c;"
+"_nx:4c,1,2;_nx_noop:4c,1,2;_x:1,2c;_n:1,2;_n_noop:1,2;__ngettext:1,2;__ngettext_noop:1,2;_c,_nc:4c,1,2\n"
+"X-Poedit-Basepath: ..\n"
+"X-Generator: Poedit 3.0\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: acumbamail.php:42
+msgid "Manage your subscriptions with Acumbamail"
+msgstr "Gestiona tus suscripciones en Acumbamail"
+
+#: acumbamail.php:52
+msgid "Set up the form to be displayed on your Wordpress pages"
+msgstr "Configura el formulario para mostrarlo en tus páginas de Wordpress"
+
+#: acumbamail.php:73
+msgid "Integrate your Acumbamail forms into your Wordpress pages"
+msgstr "Integra tus formularios de Acumbamail en tus páginas de Wordpress"
+
+#: acumbamail.php:82 acumbamail.php:111
+msgid "List"
+msgstr "Lista"
+
+#: acumbamail.php:92
+msgid "Form"
+msgstr "Formulario"
+
+#: acumbamail.php:102
+msgid "Configure the Acumbamail list to which your customers will be automatically subscribed"
+msgstr "Configura aquí la lista de Acumbamail a la que se suscribirán automáticamente tus compradores"
+
+#: acumbamail.php:118
+msgid "Checkbox text"
+msgstr "Texto checkbox"
+
+#: acumbamail.php:128
+msgid "Auth Token"
+msgstr "Auth Token"
+
+#: acumbamail.php:190
+msgid "Your lists could not be retrieved"
+msgstr "No se han podido recuperar tus listas"
+
+#: acumbamail.php:190
+msgid "Check that you have created lists and that your hosting allows incoming traffic from Acumbamail"
+msgstr "Asegúrate de que has creados al menos una lista y de que tu hosting permita tráfico entrante desde Acumbamail"
+
+#: acumbamail.php:194
+msgid "Select a list"
+msgstr "Selecciona una lista"
+
+#: acumbamail.php:205
+msgid "Select a form"
+msgstr "Selecciona un formulario"
+
+#: acumbamail.php:215
+msgid "Would you like to subscribe to our mailing list?"
+msgstr "¿Deseas subscribirte a nuestra lista de correo?"
+
+#: acumbamail_widget.php:10
+msgid "Widget for integrating Acumbamail forms into your pages"
+msgstr "Widget para integrar los formularios de Acumbamail en tus páginas"
+
+#: inc/admin_page.php:5
+msgid "Acumbamail Plugin"
+msgstr "Plugin de Acumbamail"
+
+#: inc/admin_page.php:10
+msgid "Delete forms"
+msgstr "Borrar formularios"
+
+#: inc/admin_page.php:12
+msgid "Save changes"
+msgstr "Guardar cambios"
+
+#: inc/admin_page.php:19
+msgid "How does the plugin work?"
+msgstr "¿Cómo funciona el plugin?"
+
+#: inc/admin_page.php:23
+msgid "Enter the auth token corresponding to your account"
+msgstr "Introduce el auth token correspondiente a tu cuenta"
+
+#: inc/admin_page.php:24
+msgid "You can find it"
+msgstr "Lo podrás encontrar"
+
+#: inc/admin_page.php:25
+msgid "https://acumbamail.com/en/apidoc/getAuthToken/"
+msgstr "https://acumbamail.com/apidoc/getAuthToken/"
+
+#: inc/admin_page.php:26
+msgid "here"
+msgstr "aquí"
+
+#: inc/admin_page.php:30
+msgid "Select a list previously created in"
+msgstr "Seleccione una lista previamente creada en"
+
+#: inc/admin_page.php:31 inc/admin_page.php:37
+msgid "https://acumbamail.com/en/"
+msgstr "https://acumbamail.com/"
+
+#: inc/admin_page.php:32
+msgid "The forms associated with the list will be displayed"
+msgstr "Se mostrarán los formularios asociados a la lista seleccionada"
+
+#: inc/admin_page.php:35
+msgid "Select the form that will be displayed on your Wordpress pages"
+msgstr "Selecciona un formulario para que aparezca en tus páginas de Wordpress"
+
+#: inc/admin_page.php:36
+msgid "You can create new forms in"
+msgstr "Puedes crear nuevos formularios en"
+
+#: inc/admin_page.php:40
+msgid "In the Appearance/Widgets section, select the Acumbamail widget and place it where you want it to be displayed"
+msgstr ""
+"Dentro de la sección de Apariencia/Widgets selecciona el widget de Acumbamail y colócalo donde quieras que aparezca"
+
+#: inc/admin_page.php:41
+msgid ""
+"Remember that only the classic forms will be displayed where selected. The rest of form types already have their "
+"default position within the page"
+msgstr ""
+"Recuerda que sólo el formulario clásico aparecerá donde se indica. El resto de tipos de formularios ya tienen su "
+"posición predeterminada dentro de la página"
+
+#: inc/admin_page.php:45
+msgid ""
+"If you have enabled the Woocommerce plugin, you can also set up a list to which your customers will be subscribed "
+"after purchasing a product"
+msgstr ""
+"Si tienes habilitado el plugin de Woocommerce, también podrás configurar una lista a la que se suscribirán tus "
+"clientes después de realizar una compra"
+
+#: inc/admin_page.php:50
+msgid "About Acumbamail"
+msgstr "Sobre Acumbamail"
+
+#: inc/admin_page.php:53
+msgid "Our team is composed of professionals who come from the online marketing, IT and design sectors"
+msgstr ""
+"Nuestro equipo está formado por profesionales que proceden del sector del marketing online, la informática y el diseño"
+
+#: inc/admin_page.php:54
+msgid "We count with years of experience to guarantee a high quality service"
+msgstr "Tenemos años de experiencia detrás para garantizar un servicio de calidad"
+
+#: inc/admin_page.php:55
+msgid "We will be happy to assist you whenever you need it"
+msgstr "Estaremos encantados de atenderte cuando lo necesites"
+
+#: inc/frontend.php:22
+msgid "Sending..."
+msgstr "Enviando..."
+
+#: inc/frontend.php:40
+msgid "We have sent you an email to confirm your subscription"
+msgstr "Te hemos enviado un email para confirmar la suscripción"
+
+#: inc/frontend.php:42
+msgid "You have been successfully subscribed"
+msgstr "Te has suscrito correctamente"
+
+#: inc/frontend.php:67
+msgid "Subscribe to our newsletter"
+msgstr "Suscríbete a nuestro newsletter"
+
+#: inc/frontend.php:68
+msgid "Subscribe"
+msgstr "Suscríbete"
+
+#: inc/frontend.php:164
+msgid "Set up the Acumbamail plugin in the interface to display the widget"
+msgstr "Configura el plugin de Acumbamail en la interfaz para visualizar el Widget"
+
+#: inc/acumbamail.php:6
+msgid "Integrate your Acumbamail forms in your Wordpress pages"
+msgstr "Integra tus formularios de Acumbamail en tus páginas de Wordpress"
+
+#: inc/acumbamail.php:6
+msgid "Show your Acumbamail signup forms easily in your Wordpress pages through a widget."
+msgstr "Integra fácilmente tus formularios de suscripción de Acumbamail en tus páginas de Wordpress mediante un widget."
