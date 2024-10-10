@@ -3,7 +3,7 @@ Contributors: jesusbotella, jamateos, laugutierrezz
 Tags: acumbamail, mailing, email marketing
 Requires at least: 3.0.1
 Tested up to: 6.4.2
-Stable tag: 2.0.21
+Stable tag: 2.0.23
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,7 +44,14 @@ Más información:
 https://acumbamail.com/integraciones/wordpress/
 
 == Changelog ==
+= 2.0.23 =
+* Fix controls
+
+= 2.0.22 =
+* Add controls for abandon cart
+
 = 2.0.21 =
+* Fix Version
 * Fix Version
 
 = 2.0.20 =

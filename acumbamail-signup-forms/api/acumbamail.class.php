@@ -408,7 +408,7 @@ class AcumbamailAPI {
         return $this->callAPI($request, $data);
     }
 
-    private function delete_cookies_cart(){
+	private function delete_cookies_cart(){
 		if (isset($_COOKIE['id_acb_ctmer'])) {
 			setcookie('id_acb_ctmer', '', time() - (86400 * 2), "/"); 
 		}	
@@ -416,43 +416,56 @@ class AcumbamailAPI {
 		if (isset($_COOKIE['id_acb_cart'])) {
 			setcookie('id_acb_cart', '', time() - (86400 * 2), "/"); 
 		}		
-	}    
+	}   
+	
+	private function get_email_customer_session() {
+		$customer_email = "";
+		// Verificar si la sesión está iniciada y contiene datos
+		if (WC()->session && WC()->session->get('customer')) {
+			$customer_data = WC()->session->get('customer');
 
-    public function paymentCompleteActionWoocommerce($id, $transaction_id )	{
+			if (isset($customer_data['email'])) {
+				$customer_email = $customer_data['email'];
+			}
+		} 	
+		return $customer_email;
+	}	 
+
+    	public function paymentCompleteActionWoocommerce($id, $transaction_id )	{
 		$request = "paymentCompleteCart";
 		$customer_id =  $this->get_or_generate_id_customer();
-        $customer_email = WC()->session->get('customer')['email'];	
+        	$customer_email = $this->get_email_customer_session();	
         
-        $this->delete_cookies_cart();
+        	$this->delete_cookies_cart();
 		
-        $data = array(
-            'cart_customer_id' => $customer_id,
-            'cart_customer_email' => $customer_email,
+        	$data = array(
+            	'cart_customer_id' => $customer_id,
+            	'cart_customer_email' => $customer_email,
 			'cart_order_id' => $id,
 			// 'transaction_id' => $transaction_id,
-        );	
+        	);	
 	
 		$data['cart_id'] = $this->get_or_generate_id_cart();
 		$this->callAPI($request,$data);			
 	}  
     
-    private function get_or_generate_id_customer() {
-        if (isset($_COOKIE['id_acb_ctmer'])) {
+    	private function get_or_generate_id_customer() {
+		if (isset($_COOKIE['id_acb_ctmer'])) {
 			$id_customer = $_COOKIE['id_acb_ctmer'];
 		} else {
 			$id_customer = $this->generate_id_temp_customer();
 			setcookie('id_acb_ctmer', $id_customer, time() + (86400 * 2), "/");
 		}
-		
-        if (is_user_logged_in()) {
-			return  get_current_user_id();
+			
+		if (is_user_logged_in()) {
+				return  get_current_user_id();
 		}
 
 		return $id_customer;
 	}
 	
 	public function generate_id_cart() {
-    	return wp_generate_uuid4();
+    		return wp_generate_uuid4();
 	}
 	
 	public function generate_id_temp_customer() {
@@ -467,7 +480,7 @@ class AcumbamailAPI {
 		return $id_customer;		
 	}	    
     
-    public function get_or_generate_id_cart() {
+    	public function get_or_generate_id_cart() {
 		if (isset($_COOKIE['id_acb_cart'])) {
 			$id_cart = $_COOKIE['id_acb_cart'];
 		} else {
@@ -486,7 +499,7 @@ class AcumbamailAPI {
 		} 
 	}    
     
-    public function get_email_customer($user_id) {
+   	public function get_email_customer($user_id) {
 		// Retrieve the user's data
 		$user_data = get_userdata($user_id);
 
@@ -500,26 +513,26 @@ class AcumbamailAPI {
 		}
 	}  
     
-    public function loguinWoocommerce($user, $cart) {
+	public function loguinWoocommerce($user, $cart) {
 		$request = "loginUserCart";
 		$customer_id = $this->get_id_temp_customer(); 
 
-        $order_id = "";
+        	$order_id = "";
 		if (WC()->order != null) {
 			$order_id =  WC()->order->id;	
 		}
 
-        $data = array(
-			'cart_customer_id' => $customer_id,
-            'cart_user_id' => $user->ID,
-            'cart_customer_email' => $this->get_email_customer($user->ID),
-            'cart_order_id' => $order_id
-        );	
+		$data = array(
+				'cart_customer_id' => $customer_id,
+		    'cart_user_id' => $user->ID,
+		    'cart_customer_email' => $this->get_email_customer($user->ID),
+		    'cart_order_id' => $order_id
+		);	
 		
 		$data['cart_id'] = $this->get_or_generate_id_cart();
 
-        $product = array();
-        foreach ($cart->get_cart() as $cart_item_key => $cart_item) {
+		$product = array();
+		foreach ($cart->get_cart() as $cart_item_key => $cart_item) {
 			$product_data = $cart_item['data'];
 			$product_id = $cart_item['product_id'];
 			$quantity = $cart_item['quantity'];
@@ -542,53 +555,53 @@ class AcumbamailAPI {
 		$data['cart_product'] = json_encode($product);
 		$data['cart_contents_total'] = $cart->get_cart_contents_count();
 		$data['cart_total']= $cart->total . " " . get_woocommerce_currency_symbol();
-        $data['registered'] = is_user_logged_in();	
+       		$data['registered'] = is_user_logged_in();	
                 
 		$this->callAPI($request,$data);				
 	}
 	
-	public function newOrderWoocommerce($order_id, $cart) {
+	public function newOrderWoocommerce($order_id) {
 		$request = "newOrderCart";
 		$customer_id = $this->get_or_generate_id_customer(); 
-        $customer_email = WC()->session->get('customer')['email'];		
+        	$customer_email = $this->get_email_customer_session();		
  
-        $data = array(
-            'cart_customer_id' => $customer_id,
-            'cart_customer_email' => $customer_email,
-			'cart_order_id' =>$order_id
-			//'cart' => $cart->get_cart()
-        );	
-		
+		$data = array(
+		    'cart_customer_id' => $customer_id,
+		    'cart_customer_email' => $customer_email,
+				'cart_order_id' =>$order_id
+				//'cart' => $cart->get_cart()
+		);	
+			
 		$data['cart_id'] = $this->get_or_generate_id_cart();
 			
 		$this->callAPI($request,$data);			
 	}  
     
-    public function removeWoocommerceCart($cart, $cart_item_key_remove) {
+   	public function removeWoocommerceCart($cart, $cart_item_key_remove) {
 		$request = "removeItemCart";
-		
+			
 		$customer_id = $this->get_or_generate_id_customer();
-        $customer_email = WC()->session->get('customer')['email'];
-        
-        $order_id = "";
+		$customer_email = $this->get_email_customer_session();
+		
+		$order_id = "";
 		if (WC()->order != null) {
 			$order_id =  WC()->order->id;	
 		}
 
-        $data = array(
-            'cart_customer_id' => $customer_id,
-            'cart_customer_email' => $customer_email,
-			'cart_order_id' => $order_id
-        );
+		$data = array(
+		    'cart_customer_id' => $customer_id,
+		    'cart_customer_email' => $customer_email,
+				'cart_order_id' => $order_id
+		);
 
-        $this->check_empty_cart();        
-		
+		$this->check_empty_cart();        
+			
 		$data['cart_item_key_remove'] = $cart_item_key_remove;
-        $cart->calculate_totals();
+		$cart->calculate_totals();
 		$data['cart_total'] =  $cart->total . " " . get_woocommerce_currency_symbol();
 		$data['cart_contents_total'] = $cart->get_cart_contents_count();        
 		$data['cart_id'] = $this->get_or_generate_id_cart();
-        $this->callAPI($request,$data);
+		$this->callAPI($request,$data);
 		
 	}    
 
@@ -596,12 +609,12 @@ class AcumbamailAPI {
         $request = "addItemCart";
         
         $customer_id = $this->get_or_generate_id_customer();
-        $customer_email = WC()->session->get('customer')['email'];
+        $customer_email = $this->get_email_customer_session();
         
         $order_id = "";
-		if (WC()->order != null) {
-			$order_id =  WC()->order->id;	
-		}
+	if (WC()->order != null) {
+		$order_id =  WC()->order->id;	
+	}
 
         $data = array(
             'cart_customer_id' => $customer_id,
@@ -611,34 +624,34 @@ class AcumbamailAPI {
         
         $product = array();
         foreach ($cart->get_cart() as $cart_item_key => $cart_item) {
-			if ($cart_item_key == $cart_item_key_update) { // We only send the new one or a new unit
-				//$data_hash = $cart_item['data_hash'];
-				$product_data = $cart_item['data'];
-				$product_id = $cart_item['product_id'];
-				$quantity = $cart_item['quantity'];
-				$price =  WC()->cart->get_product_price( $product_data );
-				$link = $product_data->get_permalink( $cart_item );
+		if ($cart_item_key == $cart_item_key_update) { // We only send the new one or a new unit
+			//$data_hash = $cart_item['data_hash'];
+			$product_data = $cart_item['data'];
+			$product_id = $cart_item['product_id'];
+			$quantity = $cart_item['quantity'];
+			$price =  WC()->cart->get_product_price( $product_data );
+			$link = $product_data->get_permalink( $cart_item );
 
-				array_push(
-					$product,
-					array(
-						'cart_item_id' => $cart_item_key,
-						'cart_product_id' => $product_id,
-						'cart_quantity' => $quantity,
-						'cart_price' => $price,
-						'cart_link' => $link
-					)
-				);
-			}
+			array_push(
+				$product,
+				array(
+					'cart_item_id' => $cart_item_key,
+					'cart_product_id' => $product_id,
+					'cart_quantity' => $quantity,
+					'cart_price' => $price,
+					'cart_link' => $link
+				)
+			);
 		}
+	}
 
 		
-		$data['cart_url'] =  wc_get_cart_url();
-		$data['cart_product'] = json_encode($product);
-		$data['cart_contents_total'] = $cart->get_cart_contents_count();
-		$data['cart_total']= $cart->total . " " . get_woocommerce_currency_symbol();
-		$data['cart_event'] = $event;
-		$data['cart_id'] = $this->get_or_generate_id_cart();
+	$data['cart_url'] =  wc_get_cart_url();
+	$data['cart_product'] = json_encode($product);
+	$data['cart_contents_total'] = $cart->get_cart_contents_count();
+	$data['cart_total']= $cart->total . " " . get_woocommerce_currency_symbol();
+	$data['cart_event'] = $event;
+	$data['cart_id'] = $this->get_or_generate_id_cart();
         $data['registered'] = is_user_logged_in();
 		
         $this->callAPI($request,$data);

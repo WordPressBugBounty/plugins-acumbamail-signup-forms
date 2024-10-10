@@ -4,7 +4,7 @@
    Plugin Name: Acumbamail
    Plugin URI: https://acumbamail.com/en/integrations/wordpress/
    Description: Integrate your Acumbamail forms in your Wordpress pages
-   Version: 2.0.21
+   Version: 2.0.23
    Author: Acumbamail
    Author URI: https://acumbamail.com
    Text Domain: acumbamail-signup-forms
@@ -44,44 +44,95 @@ function acumbamail_custom_action_after_login($user_login, $user) {
 }
 
 function acumbamail_check_cart_after_login() {
-	 if (get_option('custom_user_logged_in')) {
-		$options = get_option('acumbamail_options');
-    	$api = new AcumbamailAPI('', $options['auth_token']);
-    	$api->loguinWoocommerce(wp_get_current_user(), WC()->cart);
-		 
-		delete_option('custom_user_logged_in'); 
-	 }
+	if (function_exists('WC') && !is_null(WC())) {
+		if (get_option('custom_user_logged_in')) {
+			$options = get_option('acumbamail_options');
+			if (!empty($options) && !empty($options['auth_token'])) {
+				// Verificar que haya un usuario autenticado
+				$current_user = wp_get_current_user();
+				if (!$current_user || 0 === $current_user->ID) {
+					error_log('No se encontró ningún usuario autenticado.');
+					return;
+				}
+				// Verificar si el carrito de WooCommerce está disponible y no está vacío
+				$cart = WC()->cart;
+				if (!$cart || is_null($cart) || sizeof($cart->get_cart()) == 0) {
+					error_log('El carrito de WooCommerce no está disponible o está vacío.');
+					return;
+				}				
+				$api = new AcumbamailAPI('', $options['auth_token']);
+				$api->loguinWoocommerce($current_user, $cart);
+				delete_option('custom_user_logged_in');	
+			}
+		}
+	}
 }
 
 function acumbamail_woocommerce_add_to_cart($cart_id) {
-    $options = get_option('acumbamail_options');
-    $api = new AcumbamailAPI('', $options['auth_token']);
-	WC()->cart->calculate_totals();
-    $api->submitWoocommerceCart(WC()->cart,"add", $cart_id);
+	if (function_exists('WC') && !is_null(WC())) {
+		$options = get_option('acumbamail_options');
+
+		if (!empty($options) && !empty($options['auth_token'])) {
+			$api = new AcumbamailAPI('', $options['auth_token']);
+
+			if (WC()->cart && !is_null(WC()->cart)) {
+				WC()->cart->calculate_totals();
+				$api->submitWoocommerceCart(WC()->cart, "add", $cart_id);
+			} else {
+				error_reporting('no existe WC()->cart o es nulo');
+			}
+		} else {
+			error_log('esta vacio options o no existe auth_token');
+		}
+	} else {
+		error_log('No existe WC o es nula.');
+	}
 }
 
 function acumbamail_woocommerce_cart_item_removed($cart_item_key, $cart) { 
-   $options = get_option('acumbamail_options');
-   $api = new AcumbamailAPI('', $options['auth_token']);
-   $api->removeWoocommerceCart(WC()->cart, $cart_item_key);	
+	if (function_exists('WC') && !is_null(WC())) {
+	    $options = get_option('acumbamail_options');
+		if (!empty($options) && !empty($options['auth_token'])) {
+	   		$api = new AcumbamailAPI('', $options['auth_token']);
+			if (WC()->cart && !is_null(WC()->cart)) {
+	   			$api->removeWoocommerceCart(WC()->cart, $cart_item_key);	
+			}
+		}
+	}	
 }
 
 function acumbamail_woocommerce_cart_item_set_quantity($cart_item_key, $quantity, $cart) { 
-   $options = get_option('acumbamail_options');
-   $api = new AcumbamailAPI('', $options['auth_token']);
-   $api->submitWoocommerceCart(WC()->cart, "change_quantity", $cart_item_key);		
+	if (function_exists('WC') && !is_null(WC())) {
+   		$options = get_option('acumbamail_options');
+		if (!empty($options) && !empty($options['auth_token'])) {
+   			$api = new AcumbamailAPI('', $options['auth_token']);
+			if (WC()->cart && !is_null(WC()->cart)) {
+   				$api->submitWoocommerceCart(WC()->cart, "change_quantity", $cart_item_key);		
+			}
+		}
+	}	
 }
 
 function acumbamail_woocommerce_new_order_action( $order_id, $order ){
-	$options = get_option('acumbamail_options');
-    $api = new AcumbamailAPI('', $options['auth_token']);
-    $api->newOrderWoocommerce($order_id, WC()->cart);	
+	if (function_exists('WC') && !is_null(WC())) {
+		$options = get_option('acumbamail_options');
+		if (!empty($options) && !empty($options['auth_token'])) {
+			$api = new AcumbamailAPI('', $options['auth_token']);
+			if (WC()->cart && !is_null(WC()->cart)) {
+				$api->newOrderWoocommerce($order_id);
+			}
+		}
+	}	
 }
 
 function acumbamail_woocommerce_payment_complete_action( $id, $transaction_id ){
-    $options = get_option('acumbamail_options');
-    $api = new AcumbamailAPI('', $options['auth_token']);
-    $api->paymentCompleteActionWoocommerce($id, $transaction_id );
+	if (function_exists('WC') && !is_null(WC())) {
+		$options = get_option('acumbamail_options');
+		if (!empty($options) && !empty($options['auth_token'])) {
+			$api = new AcumbamailAPI('', $options['auth_token']);
+			$api->paymentCompleteActionWoocommerce($id, $transaction_id );
+		}
+	}
 }
 
 function acumbamail_woocommerce_login_credentials($creds) {
