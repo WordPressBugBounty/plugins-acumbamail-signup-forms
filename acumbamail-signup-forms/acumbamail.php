@@ -4,7 +4,7 @@
    Plugin Name: Acumbamail
    Plugin URI: https://acumbamail.com/en/integrations/wordpress/
    Description: Integrate your Acumbamail forms in your Wordpress pages
-   Version: 2.0.23
+   Version: 2.0.24
    Author: Acumbamail
    Author URI: https://acumbamail.com
    Text Domain: acumbamail-signup-forms
@@ -51,13 +51,13 @@ function acumbamail_check_cart_after_login() {
 				// Verificar que haya un usuario autenticado
 				$current_user = wp_get_current_user();
 				if (!$current_user || 0 === $current_user->ID) {
-					error_log('No se encontró ningún usuario autenticado.');
+					//error_log('No se encontró ningún usuario autenticado.');
 					return;
 				}
 				// Verificar si el carrito de WooCommerce está disponible y no está vacío
 				$cart = WC()->cart;
 				if (!$cart || is_null($cart) || sizeof($cart->get_cart()) == 0) {
-					error_log('El carrito de WooCommerce no está disponible o está vacío.');
+					//error_log('El carrito de WooCommerce no está disponible o está vacío.');
 					return;
 				}				
 				$api = new AcumbamailAPI('', $options['auth_token']);
@@ -82,10 +82,10 @@ function acumbamail_woocommerce_add_to_cart($cart_id) {
 				error_reporting('no existe WC()->cart o es nulo');
 			}
 		} else {
-			error_log('esta vacio options o no existe auth_token');
+			//error_log('esta vacio options o no existe auth_token');
 		}
 	} else {
-		error_log('No existe WC o es nula.');
+		//error_log('No existe WC o es nula.');
 	}
 }
 
@@ -393,7 +393,7 @@ function acumbamail_woocommerce_add_subscription_check_field($fields) {
 }
 
 function acumbamail_woocommerce_add_subscription_field_to_order($order_id) {
-    if ($_POST['acumba_subscribe']) {
+    if (isset($_POST['acumba_subscribe']) && $_POST['acumba_subscribe']) {
         update_post_meta($order_id, 'acumba_subscribe', $_POST['acumba_subscribe']);
     }
 }
