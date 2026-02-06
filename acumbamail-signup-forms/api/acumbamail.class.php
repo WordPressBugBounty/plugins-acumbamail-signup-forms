@@ -374,7 +374,7 @@ class AcumbamailAPI {
     public function batchAddSubscribers($list_id, $subscribers_data){
         $request = "batchAddSubscribers";
 
-        $subscribers_data = json_encode($subscribers_data);
+        $subscribers_data = wp_json_encode($subscribers_data);
 
         $data = array(
             "list_id" => $list_id,
@@ -400,7 +400,6 @@ class AcumbamailAPI {
         return $this->callAPI($request, $data);
     }
 
-        // getMergeFieldsWordPress($list_id)
     // Obtiene los merge fields de la lista y el tipo que tienen
     public function getMergeFieldsWordPress($list_id){
         $request = "getMergeFieldsWordPress";
@@ -408,16 +407,16 @@ class AcumbamailAPI {
         return $this->callAPI($request, $data);
     }
 
-	private function delete_cookies_cart(){
+	function delete_cookies_cart(){
 		if (isset($_COOKIE['id_acb_ctmer'])) {
-			setcookie('id_acb_ctmer', '', time() - (86400 * 2), "/"); 
-		}	
-		
+			setcookie('id_acb_ctmer', '', time() - (86400 * 2), "/");
+		}
+
 		if (isset($_COOKIE['id_acb_cart'])) {
-			setcookie('id_acb_cart', '', time() - (86400 * 2), "/"); 
-		}		
-	}   
-	
+			setcookie('id_acb_cart', '', time() - (86400 * 2), "/");
+		}
+	}
+
 	private function get_email_customer_session() {
 		$customer_email = "";
 		// Verificar si la sesión está iniciada y contiene datos
@@ -427,78 +426,100 @@ class AcumbamailAPI {
 			if (isset($customer_data['email'])) {
 				$customer_email = $customer_data['email'];
 			}
-		} 	
+		}
 		return $customer_email;
-	}	 
+	}
 
-    	public function paymentCompleteActionWoocommerce($id, $transaction_id )	{
+    public function paymentCompleteActionWoocommerce($id, $transaction_id=null )	{
 		$request = "paymentCompleteCart";
-		$customer_id =  $this->get_or_generate_id_customer();
-        	$customer_email = $this->get_email_customer_session();	
-        
-        	$this->delete_cookies_cart();
-		
-        	$data = array(
-            	'cart_customer_id' => $customer_id,
-            	'cart_customer_email' => $customer_email,
-			'cart_order_id' => $id,
-			// 'transaction_id' => $transaction_id,
-        	);	
-	
-		$data['cart_id'] = $this->get_or_generate_id_cart();
-		$this->callAPI($request,$data);			
-	}  
-    
-    	private function get_or_generate_id_customer() {
+
+        $order = wc_get_order($id);
+        $id_acb_cart = $order->get_meta('id_acb_cart');
+        $id_acb_ctmer = $order->get_meta('id_acb_ctmer');
+
+        $customer_id = $id_acb_ctmer;
+        $customer_email = $this->get_email_customer_session();
+
+        $this->delete_cookies_cart();
+
+        $data = array(
+            'cart_customer_id' => $customer_id,
+            'cart_customer_email' => $customer_email,
+            'cart_order_id' => $id,
+        );
+
+        $data['cart_id'] = $id_acb_cart;
+		$this->callAPI($request,$data);
+	}
+
+    private function save_id_customer($order_id) {
+		if (is_user_logged_in()) {
+            $id_acb_ctmer = get_current_user_id();
+        } else {
+            $id_acb_ctmer = isset($_COOKIE['id_acb_ctmer']) ? sanitize_text_field(wp_unslash($_COOKIE['id_acb_ctmer'])) : '';
+        }
+        $order = wc_get_order($order_id);
+        $order->update_meta_data('id_acb_ctmer',$id_acb_ctmer);
+        $order->save();
+    }
+
+    private function save_id_cart($order_id) {
+        $id_acb_cart = isset($_COOKIE['id_acb_cart']) ? sanitize_text_field(wp_unslash($_COOKIE['id_acb_cart'])) : '';
+        $order = wc_get_order($order_id);
+        $order->update_meta_data('id_acb_cart', $id_acb_cart);
+        $order->save();
+    }
+
+    private function get_or_generate_id_customer() {
 		if (isset($_COOKIE['id_acb_ctmer'])) {
-			$id_customer = $_COOKIE['id_acb_ctmer'];
+			$id_customer = sanitize_text_field(wp_unslash($_COOKIE['id_acb_ctmer']));
 		} else {
 			$id_customer = $this->generate_id_temp_customer();
 			setcookie('id_acb_ctmer', $id_customer, time() + (86400 * 2), "/");
 		}
-			
+
 		if (is_user_logged_in()) {
 				return  get_current_user_id();
 		}
 
 		return $id_customer;
 	}
-	
+
 	public function generate_id_cart() {
     		return wp_generate_uuid4();
 	}
-	
+
 	public function generate_id_temp_customer() {
 		return "t_" . bin2hex(random_bytes(30 / 2));
-	}  
+	}
 
 	public function get_id_temp_customer() {
 		$id_customer = "";
 		if (isset($_COOKIE['id_acb_ctmer'])) {
-			$id_customer = $_COOKIE['id_acb_ctmer']; 
-		} 
-		return $id_customer;		
-	}	    
-    
-    	public function get_or_generate_id_cart() {
+			$id_customer = sanitize_text_field(wp_unslash($_COOKIE['id_acb_ctmer']));
+		}
+		return $id_customer;
+	}
+
+    public function get_or_generate_id_cart() {
 		if (isset($_COOKIE['id_acb_cart'])) {
-			$id_cart = $_COOKIE['id_acb_cart'];
+			$id_cart = sanitize_text_field(wp_unslash($_COOKIE['id_acb_cart']));
 		} else {
 			$id_cart = $this->generate_id_cart();
 			setcookie('id_acb_cart', $id_cart, time() + (86400 * 2), "/");
 		}
-		
-		return $id_cart;		
+
+		return $id_cart;
 	}
 
 	public function check_empty_cart() {
 		$cart_contents = WC()->cart->get_cart_contents_count();
 
 		if ($cart_contents == 0) {
-			$this->delete_cookies_cart();			
-		} 
-	}    
-    
+			$this->delete_cookies_cart();
+		}
+	}
+
    	public function get_email_customer($user_id) {
 		// Retrieve the user's data
 		$user_data = get_userdata($user_id);
@@ -511,24 +532,24 @@ class AcumbamailAPI {
 			// Return null if the user was not found
 			return null;
 		}
-	}  
-    
+	}
+
 	public function loguinWoocommerce($user, $cart) {
 		$request = "loginUserCart";
-		$customer_id = $this->get_id_temp_customer(); 
+		$customer_id = $this->get_id_temp_customer();
+        $order_id = "";
 
-        	$order_id = "";
 		if (WC()->order != null) {
-			$order_id =  WC()->order->id;	
+			$order_id =  WC()->order->id;
 		}
 
 		$data = array(
-				'cart_customer_id' => $customer_id,
+			'cart_customer_id' => $customer_id,
 		    'cart_user_id' => $user->ID,
 		    'cart_customer_email' => $this->get_email_customer($user->ID),
 		    'cart_order_id' => $order_id
-		);	
-		
+		);
+
 		$data['cart_id'] = $this->get_or_generate_id_cart();
 
 		$product = array();
@@ -550,118 +571,130 @@ class AcumbamailAPI {
 				)
 			);
 		}
-		
+
 		$data['cart_url'] =  wc_get_cart_url();
-		$data['cart_product'] = json_encode($product);
+		$data['cart_product'] = wp_json_encode($product);
 		$data['cart_contents_total'] = $cart->get_cart_contents_count();
 		$data['cart_total']= $cart->total . " " . get_woocommerce_currency_symbol();
-       		$data['registered'] = is_user_logged_in();	
-                
-		$this->callAPI($request,$data);				
+       	$data['registered'] = is_user_logged_in();
+
+		$this->callAPI($request,$data);
 	}
-	
+
 	public function newOrderWoocommerce($order_id) {
 		$request = "newOrderCart";
-		$customer_id = $this->get_or_generate_id_customer(); 
-        	$customer_email = $this->get_email_customer_session();		
- 
+		$customer_id = $this->get_or_generate_id_customer();
+        $customer_email = $this->get_email_customer_session();
+
 		$data = array(
 		    'cart_customer_id' => $customer_id,
 		    'cart_customer_email' => $customer_email,
-				'cart_order_id' =>$order_id
-				//'cart' => $cart->get_cart()
-		);	
-			
+			'cart_order_id' =>$order_id
+		);
+
 		$data['cart_id'] = $this->get_or_generate_id_cart();
-			
-		$this->callAPI($request,$data);			
-	}  
-    
+
+        $this->save_id_customer($order_id);
+        $this->save_id_cart($order_id);
+
+		$this->callAPI($request,$data);
+	}
+
    	public function removeWoocommerceCart($cart, $cart_item_key_remove) {
-		$request = "removeItemCart";
-			
+        $request = "removeItemCart";
 		$customer_id = $this->get_or_generate_id_customer();
 		$customer_email = $this->get_email_customer_session();
-		
+
 		$order_id = "";
 		if (WC()->order != null) {
-			$order_id =  WC()->order->id;	
+			$order_id =  WC()->order->id;
 		}
 
 		$data = array(
 		    'cart_customer_id' => $customer_id,
 		    'cart_customer_email' => $customer_email,
-				'cart_order_id' => $order_id
+			'cart_order_id' => $order_id
 		);
 
-		$this->check_empty_cart();        
-			
+		$this->check_empty_cart();
+
 		$data['cart_item_key_remove'] = $cart_item_key_remove;
 		$cart->calculate_totals();
 		$data['cart_total'] =  $cart->total . " " . get_woocommerce_currency_symbol();
-		$data['cart_contents_total'] = $cart->get_cart_contents_count();        
+		$data['cart_contents_total'] = $cart->get_cart_contents_count();
 		$data['cart_id'] = $this->get_or_generate_id_cart();
 		$this->callAPI($request,$data);
-		
-	}    
+
+	}
 
     public function submitWoocommerceCart($cart, $event, $cart_item_key_update) {
         $request = "addItemCart";
-        
+
         $customer_id = $this->get_or_generate_id_customer();
         $customer_email = $this->get_email_customer_session();
-        
+
         $order_id = "";
-	if (WC()->order != null) {
-		$order_id =  WC()->order->id;	
-	}
+        if (WC()->order != null) {
+            $order_id =  WC()->order->id;
+        }
 
         $data = array(
             'cart_customer_id' => $customer_id,
             'cart_customer_email' => $customer_email,
 			'cart_order_id' => $order_id
         );
-        
+
         $product = array();
         foreach ($cart->get_cart() as $cart_item_key => $cart_item) {
-		if ($cart_item_key == $cart_item_key_update) { // We only send the new one or a new unit
-			//$data_hash = $cart_item['data_hash'];
-			$product_data = $cart_item['data'];
-			$product_id = $cart_item['product_id'];
-			$quantity = $cart_item['quantity'];
-			$price =  WC()->cart->get_product_price( $product_data );
-			$link = $product_data->get_permalink( $cart_item );
+            if ($cart_item_key == $cart_item_key_update) { // We only send the new one or a new unit
+                $product_data = $cart_item['data'];
+                $product_id = $cart_item['product_id'];
+                $quantity = $cart_item['quantity'];
+                $price =  WC()->cart->get_product_price( $product_data );
+                $link = $product_data->get_permalink( $cart_item );
 
-			array_push(
-				$product,
-				array(
-					'cart_item_id' => $cart_item_key,
-					'cart_product_id' => $product_id,
-					'cart_quantity' => $quantity,
-					'cart_price' => $price,
-					'cart_link' => $link
-				)
-			);
-		}
-	}
+                array_push(
+                    $product,
+                    array(
+                        'cart_item_id' => $cart_item_key,
+                        'cart_product_id' => $product_id,
+                        'cart_quantity' => $quantity,
+                        'cart_price' => $price,
+                        'cart_link' => $link
+                    )
+                );
+            }
+	    }
 
-		
-	$data['cart_url'] =  wc_get_cart_url();
-	$data['cart_product'] = json_encode($product);
-	$data['cart_contents_total'] = $cart->get_cart_contents_count();
-	$data['cart_total']= $cart->total . " " . get_woocommerce_currency_symbol();
-	$data['cart_event'] = $event;
-	$data['cart_id'] = $this->get_or_generate_id_cart();
+        $data['cart_url'] =  wc_get_cart_url();
+        $data['cart_product'] = wp_json_encode($product);
+        $data['cart_contents_total'] = $cart->get_cart_contents_count();
+        $data['cart_total']= $cart->total . " " . get_woocommerce_currency_symbol();
+        $data['cart_event'] = $event;
+        $data['cart_id'] = $this->get_or_generate_id_cart();
         $data['registered'] = is_user_logged_in();
-		
+
         $this->callAPI($request,$data);
     }
-    
 
-    // callAPI($request, $data = array())
+    public function isActivateCart() {
+        $request = "activeCustomerCart";
+        return $this->callAPI($request);
+    }
+
+    public function isAuthorizedCart() {
+        $request = "authorizedCart";
+        return $this->callAPI($request);
+    }
+
+
     // Realiza la llamada a la API de Acumbamail con los datos proporcionados
     function callAPI($request, $data = array()){
         $url = "https://acumbamail.com/api/1/".$request.'/';
+
+        if (empty($this->auth_token)) {
+            return null;
+        }
 
         $fields = array(
             'customer_id' => $this->customer_id,
@@ -672,19 +705,6 @@ class AcumbamailAPI {
         if(count($data)!=0){
             $fields=array_merge($fields,$data);
         }
-
-        // $postdata = http_build_query($fields);
-
-        // $opts = array('http' => array(
-        //     'method' => 'POST',
-        //     'header' => 'Content-type: application/x-www-form-urlencoded',
-        //     'content' => $postdata));
-
-        // $response = @file_get_contents($url,
-        //                                false,
-        //                                stream_context_create($opts));
-
-        // $json = json_decode($response,true);
 
         $response = @wp_remote_post( $url, array(
             'method' => 'POST',
@@ -697,9 +717,12 @@ class AcumbamailAPI {
         ));
 
         if (is_wp_error($response)) {
-            print_r($response);
+            error_log($response);
+            return null;
+            //print_r($response); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
         }
         elseif (wp_remote_retrieve_response_code($response) != 200) {
+            echo '<div class="notice notice-error"><p><strong>No se ha podido establecer conexión. Error ' . wp_remote_retrieve_response_code($response) . '</strong></p></div>';
             return null;
         }
         else {

@@ -34,8 +34,8 @@
                     jQuery('#submit_acumba').val('Completado');
                     jQuery('#submit_acumba').prop('disabled', 'true');
                     var choose_redirect = jQuery('#ok_redirect_acumba').val();
-                    var double_optin = '<?php echo $double_optin; ?>';
-                    var welcome_email = '<?php echo $welcome_email; ?>';
+                    var double_optin = '<?php echo esc_html($double_optin); ?>';
+                    var welcome_email = '<?php echo esc_html($welcome_email); ?>';
                     if (double_optin == "1") {
                         jQuery('#acumba_response').html('We have sent you an email to confirm your subscription');
                     } else {
@@ -68,44 +68,44 @@
         if (empty($button)) $button = __('Subscribe','acumbamail-signup-forms');
 
         if (get_option('theme_style') == 'y') {
-            echo $before_widget;
-            echo $before_title.$title.$after_title;
+            echo esc_html($before_widget);
+            echo esc_html($before_title.$title.$after_title);
             echo '<div style="padding:5px 5% 5% 5%;">';
             if ($subtitle) {
-                echo "<div id=\"acumba_info\" style=\"margin-button: 5px;\">$subtitle</div>";
+                echo '<div id="acumba_info" style="margin-button: 5px;">'. esc_html($subtitle) . '</div>';
             }
-            echo '<form id="wordpress-form-acm" action="https://acumbamail.com/signup/'.$chosen_list.
+            echo '<form id="wordpress-form-acm" action="'. esc_url('https://acumbamail.com/signup/' . $chosen_list) .
             '/" method="POST">';
 
             foreach($ordered as $key => $value) {
                 if ($widget_fields_get[$value]['type'] == "boolean") {
-                    echo '<p style="margin:5px 0 0 0;"><input type="checkbox" style="width: 100%;" id="acumba_'.$widget_fields_get[$value]['name'].
-                    '" name="'.$widget_fields_get[$value]['name'].
-                    '"> '.$widget_fields_get[$value]['name_given'].
+                    echo '<p style="margin:5px 0 0 0;"><input type="checkbox" style="width: 100%;" id="acumba_'. esc_attr($widget_fields_get[$value]['name']) .
+                    '" name="'. esc_attr($widget_fields_get[$value]['name']) .
+                    '"> '. esc_html($widget_fields_get[$value]['name_given']) .
                     '</p>';
                 }
                 elseif($widget_fields_get[$value]['type'] == "combobox") {
                     echo '<p style="margin:5px 0 0 0;">';
                     $name_options = explode(";", $widget_fields_get[$value]['name']);
                     $option_values = explode(",", $name_options[1]);
-                    echo '<select name="'.$name_options[0].
-                    '" class="subscribe-input" id="acumba_'.$name_options[0].
+                    echo '<select name="'. esc_attr($name_options[0]) .
+                    '" class="subscribe-input" id="acumba_'. esc_attr($name_options[0]) .
                     '">';
                     foreach($option_values as $option_item) {
-                        echo '<option value="'.$option_item.
-                        '">'.$option_item.
+                        echo '<option value="'. esc_attr($option_item) .
+                        '">'. esc_html($option_item) .
                         '</option>';
                     }
                     echo '</select></p>';
                 } else {
-                    echo '<p style="margin:5px 0 0 0;"><input type="text" class="widefat" id="acumba_'.$widget_fields_get[$value]['name'].
-                    '" name="'.$widget_fields_get[$value]['name'].
-                    '" placeholder="'.$widget_fields_get[$value]['name_given'].
+                    echo '<p style="margin:5px 0 0 0;"><input type="text" class="widefat" id="acumba_'. esc_attr($widget_fields_get[$value]['name']) .
+                    '" name="'. esc_attr($widget_fields_get[$value]['name']) .
+                    '" placeholder="'. esc_attr($widget_fields_get[$value]['name_given']) .
                     '" style="width:100%;" required></p>';
                 }
             }
             if ($ok_redirect) {
-                echo "<p style=\"margin:8px 0 0 0;\"><input type=\"hidden\" value=\"$ok_redirect\" id=\"ok_redirect_acumba\" style=\"width: 100%;\"></p>";
+                echo '<p style="margin:8px 0 0 0;"><input type="hidden" value="' . esc_attr($ok_redirect) . '" id="ok_redirect_acumba" style="width: 100%;"></p>';
             }
             if ($double_optin) {
                 echo "<p style=\"margin:8px 0 0 0;\"><input type=\"hidden\" value=\"1\" name=\"double_optin\" id=\"acumba_double_optin\" style=\"width: 100%;\"></p>";
@@ -113,43 +113,43 @@
             if ($welcome_email) {
                 echo "<p style=\"margin:8px 0 0 0;\"><input type=\"hidden\" value=\"1\" name=\"welcome_email\" id=\"acumba_welcome_email\" style=\"width: 100%;\"></p>";
             }
-            echo "<p style=\"margin:8px 0 0 0;\"> <input type=\"submit\" value=\"$button\" id=\"submit_acumba\" style=\"width: 100%;\"></p><div id=\"acumba_response\"></div>";
+            echo '<p style="margin:8px 0 0 0;"> <input type="submit" value="' . esc_attr($button) . '" id="submit_acumba" style="width: 100%;"></p><div id="acumba_response"></div>';
             echo '</form></div>';
-            echo $after_widget;
+            echo esc_html($after_widget);
         } else {
-            echo '<section class="subscribe block"><div class="subscribe-pitch"><h3>'.$title.
-            '</h3><p id="acumba_info">'.$subtitle.
-            '<p></div><form id="wordpress-form-acm" action="https://acumbamail.com/signup/'.$chosen_list.
+            echo '<section class="subscribe block"><div class="subscribe-pitch"><h3>'.esc_html($title) .
+            '</h3><p id="acumba_info">'. esc_html($subtitle) .
+            '<p></div><form id="wordpress-form-acm" action="'. esc_url('https://acumbamail.com/signup/' . $chosen_list) .
             '/" method="POST" class="subscribe-form">';
 
             foreach($ordered as $key => $value) {
                 if ($widget_fields_get[$value]['type'] == "boolean") {
-                    echo '<span class="sep"><input type="checkbox" id="acumba_'.$widget_fields_get[$value]['name'].
-                    '" name="acumba_'.$widget_fields_get[$value]['name'].
-                    '"><label>'.$widget_fields_get[$value]['name_given'].
+                    echo '<span class="sep"><input type="checkbox" id="acumba_'. esc_attr($widget_fields_get[$value]['name']) .
+                    '" name="acumba_'. esc_attr($widget_fields_get[$value]['name']) .
+                    '"><label>'. esc_html($widget_fields_get[$value]['name_given']) .
                     '</label></span>';
                 }
                 elseif($widget_fields_get[$value]['type'] == "combobox") {
                     $name_options = explode(";", $widget_fields_get[$value]['name']);
                     $option_values = explode(",", $name_options[1]);
-                    echo '<select name="'.$name_options[0].
-                    '" class="subscribe-input" id="acumba_'.$name_options[0].
+                    echo '<select name="'. esc_attr($name_options[0]) .
+                    '" class="subscribe-input" id="acumba_'. esc_attr($name_options[0]) .
                     '">';
                     foreach($option_values as $option_item) {
-                        echo '<option value="'.$option_item.
-                        '">'.$option_item.
+                        echo '<option value="'. esc_attr($option_item) .
+                        '">'. esc_html($option_item) .
                         '</option>';
                     }
                     echo '</select>';
                 } else {
-                    echo '<input type="text" name="'.$widget_fields_get[$value]['name'].
-                    '" class="subscribe-input" placeholder="'.$widget_fields_get[$value]['name_given'].
-                    '" id="acumba_'.$widget_fields_get[$value]['name'].
+                    echo '<input type="text" name="'. esc_attr($widget_fields_get[$value]['name']) .
+                    '" class="subscribe-input" placeholder="'. esc_attr($widget_fields_get[$value]['name_given']) .
+                    '" id="acumba_'. esc_attr($widget_fields_get[$value]['name']) .
                     '" required>';
                 }
             }
             if ($ok_redirect) {
-                echo "<input type=\"hidden\" value=\"$ok_redirect\" id=\"ok_redirect_acumba\" >";
+                echo '<input type="hidden" value="' . esc_attr($ok_redirect) . '" id="ok_redirect_acumba" >';
             }
             if ($double_optin) {
                 echo "<input type=\"hidden\" value=\"1\" id=\"acumba_double_optin\" name=\"double_optin\">";
@@ -157,10 +157,10 @@
             if ($welcome_email) {
                 echo "<input type=\"hidden\" value=\"1\" id=\"acumba_welcome_email\" name=\"welcome_email\">";
             }
-            echo '<input type="submit" id="submit_acumba" class="subscribe-submit" value="'.$button.
+            echo '<input type="submit" id="submit_acumba" class="subscribe-submit" value="'. esc_attr($button) .
             '"><div id="acumba_response"></div></form></section>';
         }
     } else {
-        echo $before_widget . _e('Set up the Acumbamail plugin in the interface to display the widget','acumbamail-signup-forms') . ". " . $after_widget;
+        echo esc_html($before_widget) . esc_html_e('Set up the Acumbamail plugin in the interface to display the widget','acumbamail-signup-forms') . ". " . esc_html($after_widget);
     }
 ?>

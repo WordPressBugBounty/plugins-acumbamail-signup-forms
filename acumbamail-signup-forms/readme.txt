@@ -1,9 +1,14 @@
 === Acumbamail ===
 Contributors: jesusbotella, jamateos, laugutierrezz
 Tags: acumbamail, mailing, email marketing
-Requires at least: 3.0.1
-Tested up to: 6.4.2
-Stable tag: 2.0.24
+Requires at least: 4.7
+Tested up to: 6.8
+Requires PHP: 7.4
+WC requires at least: 3.6
+WC tested up to: 10.0
+Requires Plugins: woocommerce
+WooCommerce HPOS Compatibility: true
+Stable tag: 2.0.26
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +49,12 @@ Más información:
 https://acumbamail.com/integraciones/wordpress/
 
 == Changelog ==
+= 2.0.26 =
+* Fix logs
+
+= 2.0.25 =
+* Improving calls to api. Adding compatibility with checkout blocks from WooCommerce. CSRF protection
+
 = 2.0.24 =
 * Fix logs
 
