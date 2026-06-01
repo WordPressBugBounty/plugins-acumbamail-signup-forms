@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: acumbamail-signup-forms\n"
 "Report-Msgid-Bugs-To: Translator Name <translations@example.com>\n"
-"POT-Creation-Date: 2025-07-25 12:53+0200\n"
+"POT-Creation-Date: 2026-06-01 16:37+0200\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Your Name <you@example.com>\n"
 "Language-Team: acumbamail\n"
@@ -16,18 +16,17 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Textdomain-Support: yesX-Generator: Poedit 1.6.4\n"
 "X-Poedit-SourceCharset: UTF-8\n"
-"X-Poedit-KeywordsList: __;_e;esc_html_e;esc_html_x:1,2c;esc_html__;"
-"esc_attr_e;esc_attr_x:1,2c;esc_attr__;_ex:1,2c;_nx:4c,1,2;_nx_noop:4c,1,2;"
-"_x:1,2c;_n:1,2;_n_noop:1,2;__ngettext:1,2;__ngettext_noop:1,2;_c,_nc:4c,1,2\n"
+"X-Poedit-KeywordsList: "
+"__;_e;esc_html_e;esc_html_x:1,2c;esc_html__;esc_attr_e;esc_attr_x:1,2c;esc_attr__;_ex:1,2c;_nx:4c,1,2;_nx_noop:4c,1,2;_x:1,2c;_n:1,2;_n_noop:1,2;__ngettext:1,2;__ngettext_noop:1,2;_c,_nc:4c,1,2\n"
 "X-Poedit-Basepath: ..\n"
-"X-Generator: Poedit 3.4.2\n"
+"X-Generator: Poedit 3.9\n"
 "X-Poedit-SearchPath-0: .\n"
 
-#: acumbamail.php:214
+#: acumbamail.php:298
 msgid "Integrate your Acumbamail forms in your Wordpress pages"
 msgstr "Integra tus formularios de Acumbamail en tus páginas de Wordpress"
 
-#: acumbamail.php:215
+#: acumbamail.php:299
 msgid ""
 "Show your Acumbamail signup forms easily in your Wordpress pages through a "
 "widget."
@@ -35,27 +34,45 @@ msgstr ""
 "Integra fácilmente tus formularios de suscripción de Acumbamail en tus "
 "páginas de Wordpress mediante un widget."
 
-#: acumbamail.php:223
+#: acumbamail.php:303
 msgid "Manage your subscriptions with Acumbamail"
 msgstr "Gestiona tus suscripciones en Acumbamail"
 
-#: acumbamail.php:235
+#: acumbamail.php:315
 msgid "Set up the form to be displayed on your Wordpress pages"
 msgstr "Configura el formulario para mostrarlo en tus páginas de Wordpress"
 
-#: acumbamail.php:271
+#: acumbamail.php:327
+msgid ""
+"Install and activate WooCommerce to unlock the full functionality of this "
+"plugin."
+msgstr ""
+"Instala y activa WooCommerce para desbloquear toda la funcionalidad de este "
+"plugin."
+
+#: acumbamail.php:336
+msgid ""
+"Your active theme does not support widget areas. The Acumbamail widget will "
+"not be displayed. Use the WooCommerce integration to subscribe customers "
+"automatically."
+msgstr ""
+"Tu tema activo no es compatible con las áreas de widgets. El widget de "
+"Acumbamail no se mostrará. Usa la integración con WooCommerce para suscribir "
+"clientes automáticamente."
+
+#: acumbamail.php:361
 msgid "Integrate your Acumbamail forms into your Wordpress pages"
 msgstr "Integra tus formularios de Acumbamail en tus páginas de Wordpress"
 
-#: acumbamail.php:282 acumbamail.php:315
+#: acumbamail.php:372 acumbamail.php:405
 msgid "List"
 msgstr "Lista"
 
-#: acumbamail.php:293
+#: acumbamail.php:383
 msgid "Form"
 msgstr "Formulario"
 
-#: acumbamail.php:304
+#: acumbamail.php:394
 msgid ""
 "Configure the Acumbamail list to which your customers will be automatically "
 "subscribed"
@@ -63,37 +80,37 @@ msgstr ""
 "Configura aquí la lista de Acumbamail a la que se suscribirán "
 "automáticamente tus compradores"
 
-#: acumbamail.php:322
+#: acumbamail.php:412
 msgid "Checkbox text"
 msgstr "Texto checkbox"
 
-#: acumbamail.php:347
+#: acumbamail.php:446
 msgid "Press Update to check the integration with the abandoned cart"
 msgstr "Pulse Actualizar para comprobar la integración con carrito abandonado"
 
-#: acumbamail.php:352
+#: acumbamail.php:451
 msgid "Settings status"
 msgstr "Estado de la configuración"
 
-#: acumbamail.php:367
+#: acumbamail.php:467
 msgid "Abandoned cart integration is only available from Basic plan"
 msgstr ""
 "La integración de carrito abandonado sólo esta disponible a partir de la "
 "tarifa básica"
 
-#: acumbamail.php:368
+#: acumbamail.php:468
 msgid "View other pricing plans"
 msgstr "Ver otras tarifas"
 
-#: acumbamail.php:376
+#: acumbamail.php:477
 msgid "Auth Token"
 msgstr "Auth Token"
 
-#: acumbamail.php:466
+#: acumbamail.php:580
 msgid "Your lists could not be retrieved"
 msgstr "No se han podido recuperar tus listas"
 
-#: acumbamail.php:466
+#: acumbamail.php:580
 msgid ""
 "Check that you have created lists and that your hosting allows incoming "
 "traffic from Acumbamail"
@@ -101,19 +118,19 @@ msgstr ""
 "Asegúrate de que has creados al menos una lista y de que tu hosting permita "
 "tráfico entrante desde Acumbamail"
 
-#: acumbamail.php:470
+#: acumbamail.php:584
 msgid "Select a list"
 msgstr "Selecciona una lista"
 
-#: acumbamail.php:482
+#: acumbamail.php:596
 msgid "Select a form"
 msgstr "Selecciona un formulario"
 
-#: acumbamail.php:492
+#: acumbamail.php:608 acumbamail.php:632
 msgid "Would you like to subscribe to our mailing list?"
 msgstr "¿Deseas subscribirte a nuestra lista de correo?"
 
-#: acumbamail.php:540
+#: acumbamail.php:701
 msgid "Update"
 msgstr "Actualizar"
 

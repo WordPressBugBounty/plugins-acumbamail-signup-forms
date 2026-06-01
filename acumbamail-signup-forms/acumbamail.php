@@ -4,7 +4,7 @@
    Plugin Name: Acumbamail
    Plugin URI: https://acumbamail.com/en/integrations/wordpress/
    Description: Integrate your Acumbamail forms in your Wordpress pages
-   Version: 2.0.26
+   Version: 2.0.27
    Author: Acumbamail
    Author URI: https://acumbamail.com
    Text Domain: acumbamail-signup-forms
@@ -12,11 +12,10 @@
    License: GPLv2
    License URI: http://www.gnu.org/licenses/gpl-2.0.html
    Requires at least: 4.7
-   Tested up to: 6.8
+   Tested up to: 7.0
    Requires PHP: 7.4
    WC requires at least: 3.6
    WC tested up to: 10.0
-   Requires Plugins: woocommerce
    WooCommerce HPOS Compatibility: true
 */
 
@@ -51,6 +50,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters( 'active_plugins', get
         add_action('woocommerce_cart_item_set_quantity', 'acumbamail_woocommerce_cart_item_set_quantity',10,3); // WC 3.6.0
         add_action('woocommerce_new_order', 'acumbamail_woocommerce_new_order_action' ); // WC 2.7.0
         add_action('woocommerce_payment_complete', 'acumbamail_woocommerce_payment_complete_action', 10, 2 ); //WC 1.0
+        add_action('woocommerce_order_status_completed', 'acumbamail_woocommerce_order_status_completed_action', 10, 1 ); //WC 1.0
         //add_filter('woocommerce_login_credentials', 'acumbamail_woocommerce_login_credentials', 10); // WC 1.0
         add_action('wp_login', 'acumbamail_custom_action_after_login', 10, 2);
         add_action('template_redirect', 'acumbamail_check_cart_after_login');
@@ -230,7 +230,23 @@ function acumbamail_woocommerce_payment_complete_action( $id, $transaction_id=nu
 		$options = get_option('acumbamail_options');
 		if (!empty($options) && !empty($options['auth_token']) && !empty($options['state_cart']) && $options['state_cart'] == "enabled") {
 			$api = new AcumbamailAPI('', $options['auth_token']);
-			$api->paymentCompleteActionWoocommerce($id, $transaction_id );
+			$api->paymentCompleteActionWoocommerce($id, $transaction_id);
+			// Flag to avoid duplicate call from woocommerce_order_status_completed
+			update_post_meta($id, '_acumba_payment_complete_notified', '1');
+		}
+	}
+}
+
+function acumbamail_woocommerce_order_status_completed_action( $order_id ) {
+	// Skip if already notified via woocommerce_payment_complete (payment gateway)
+	if ( get_post_meta( $order_id, '_acumba_payment_complete_notified', true ) ) {
+		return;
+	}
+	if (function_exists('WC') && !is_null(WC())) {
+		$options = get_option('acumbamail_options');
+		if (!empty($options) && !empty($options['auth_token']) && !empty($options['state_cart']) && $options['state_cart'] == "enabled") {
+			$api = new AcumbamailAPI('', $options['auth_token']);
+			$api->paymentCompleteActionWoocommerce($order_id);
 		}
 	}
 }
@@ -283,10 +299,6 @@ function acumbamail_configuration() {
     __('Show your Acumbamail signup forms easily in your Wordpress pages through a widget.', 'acumbamail-signup-forms');
 
     $page_acumba = 'acumbamail_options_page';
-    // WordPress section (WP <= 5.7.2)
-    if ( version_compare( $wp_version, '5.7.2', '>' ) ) {
-        $page_acumba = 'acumbamail_notice_page';
-    }
     add_menu_page(
         __('Manage your subscriptions with Acumbamail', 'acumbamail-signup-forms'),
         'Acumbamail',
@@ -307,13 +319,23 @@ function acumbamail_configuration() {
             'acumbamail_woocommerce_options_page');
     }
 
-    // Si no cumple nada
-    if ( version_compare( $wp_version, '5.7.2', '>' ) && ( !is_plugin_active( 'woocommerce/woocommerce.php' ) || ! defined( 'WC_VERSION' ) || version_compare( $wp_version, '4.4', '<' ) ) ) {
+    // Show notice on Acumbamail page when WooCommerce is not active
+    if ( !is_plugin_active( 'woocommerce/woocommerce.php' ) || ! defined( 'WC_VERSION' ) ) {
         add_action( 'admin_notices', function () {
-            echo '<div class="notice notice-error"><p><strong>This plugin require WordPress ≤ 5.7.2 or  4.4 ≤ WordPress < 5.8 with WooCommerce ≥ 3.0.</strong></p></div>';
+            $page = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            if ( $page !== 'acumbamail' ) return;
+            echo '<div class="notice notice-warning"><p><strong>' . esc_html__( 'Install and activate WooCommerce to unlock the full functionality of this plugin.', 'acumbamail-signup-forms' ) . '</strong></p></div>';
         } );
     }
 
+    // Show notice on Acumbamail page when active theme does not support widget areas
+    if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
+        add_action( 'admin_notices', function () {
+            $page = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            if ( $page !== 'acumbamail' ) return;
+            echo '<div class="notice notice-warning"><p><strong>' . esc_html__( 'Your active theme does not support widget areas. The Acumbamail widget will not be displayed. Use the WooCommerce integration to subscribe customers automatically.', 'acumbamail-signup-forms' ) . '</strong></p></div>';
+        } );
+    }
 
 }
 

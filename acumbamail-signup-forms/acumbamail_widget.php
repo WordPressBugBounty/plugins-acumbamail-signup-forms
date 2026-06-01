@@ -20,6 +20,7 @@ class Acumbamail_Widget extends WP_Widget {
     }
 
     public function update($new_instance, $old_instance) {
+        return array();
     }
 
     function acumbamail_get_form_details() {
@@ -32,12 +33,11 @@ class Acumbamail_Widget extends WP_Widget {
 
     function acumbamail_display_form() {
         $form_details = $this->acumbamail_get_form_details();
-        $output = var_export($form_details, true); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export
         if ($form_details) {
             if ($form_details['classic'] == 'yes') {
                 echo '<br><div id=' . esc_attr($form_details['div_id']) . '></div>';
             }
-            echo '<script type="text/javascript" src=' . esc_url($form_details['js_link']) . '></script>'; // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript
+            wp_enqueue_script( 'acumbamail-form', $form_details['js_link'], array(), null, true );
         }
     }
 }
