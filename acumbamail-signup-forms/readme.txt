@@ -2,13 +2,13 @@
 Contributors: jesusbotella, jamateos, laugutierrezz
 Tags: acumbamail, mailing, email marketing
 Requires at least: 4.7
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 7.4
 WC requires at least: 3.6
 WC tested up to: 10.0
 Requires Plugins: woocommerce
 WooCommerce HPOS Compatibility: true
-Stable tag: 2.0.27
+Stable tag: 2.0.28
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,9 @@ Más información:
 https://acumbamail.com/integraciones/wordpress/
 
 == Changelog ==
+= 2.0.28 =
+* WordPress 7.1 compatibility
+
 = 2.0.27 =
 * WordPress 7.0 compatibility
 * Fix widget not rendering with block themes (WP 7.0 changed isset() behavior)

@@ -4,7 +4,7 @@
    Plugin Name: Acumbamail
    Plugin URI: https://acumbamail.com/en/integrations/wordpress/
    Description: Integrate your Acumbamail forms in your Wordpress pages
-   Version: 2.0.27
+   Version: 2.0.28
    Author: Acumbamail
    Author URI: https://acumbamail.com
    Text Domain: acumbamail-signup-forms
@@ -12,7 +12,7 @@
    License: GPLv2
    License URI: http://www.gnu.org/licenses/gpl-2.0.html
    Requires at least: 4.7
-   Tested up to: 7.0
+   Tested up to: 7.1
    Requires PHP: 7.4
    WC requires at least: 3.6
    WC tested up to: 10.0
