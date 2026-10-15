@@ -4,7 +4,7 @@
    Plugin Name: Acumbamail
    Plugin URI: https://acumbamail.com/en/integrations/wordpress/
    Description: Integrate your Acumbamail forms in your Wordpress pages
-   Version: 2.0.28
+   Version: 2.0.29
    Author: Acumbamail
    Author URI: https://acumbamail.com
    Text Domain: acumbamail-signup-forms
@@ -15,7 +15,7 @@
    Tested up to: 7.1
    Requires PHP: 7.4
    WC requires at least: 3.6
-   WC tested up to: 10.0
+   WC tested up to: 11.2
    WooCommerce HPOS Compatibility: true
 */
 
@@ -33,13 +33,14 @@ add_action( 'before_woocommerce_init', 'declare_woo_hpos_compatibility');
 
 
 
-if (in_array('woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins')))) {
+if (in_array('woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins')))) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core filter.
     // checkout blocks
     add_action('woocommerce_init', 'acumbamail_woocommerce_add_subscription_check_field_block');
 
     add_filter('woocommerce_checkout_fields', 'acumbamail_woocommerce_add_subscription_check_field'); // WC 3.0.0
-    add_action('woocommerce_checkout_update_order_meta', 'acumbamail_woocommerce_add_subscription_field_to_order'); // WC 3.0.0
-    add_action('woocommerce_order_status_processing', 'acumbamail_woocommerce_subscribe_client'); //WC 1.0.0
+    add_action('woocommerce_checkout_create_order', 'acumbamail_woocommerce_add_subscription_field_to_order', 10, 2); // WC 3.0.0
+    add_action('woocommerce_order_status_changed', 'acumbamail_woocommerce_order_status_changed', 10, 3); // WC 3.0.0
+    add_action('init', 'acumbamail_woocommerce_statuses_since');
 
     //checkout blocks
     add_action('woocommerce_store_api_checkout_update_order_from_request', 'acumbamail_woocommerce_add_subscription_field_to_order_block',10,2); // WC 7.2.0
@@ -49,9 +50,9 @@ if (in_array('woocommerce/woocommerce.php', apply_filters( 'active_plugins', get
         add_action('woocommerce_cart_item_removed', 'acumbamail_woocommerce_cart_item_removed',10,2); // WC 1.0
         add_action('woocommerce_cart_item_set_quantity', 'acumbamail_woocommerce_cart_item_set_quantity',10,3); // WC 3.6.0
         add_action('woocommerce_new_order', 'acumbamail_woocommerce_new_order_action' ); // WC 2.7.0
+        add_action('woocommerce_pre_payment_complete', 'acumbamail_woocommerce_pre_payment_complete_action', 10, 1 );
         add_action('woocommerce_payment_complete', 'acumbamail_woocommerce_payment_complete_action', 10, 2 ); //WC 1.0
         add_action('woocommerce_order_status_completed', 'acumbamail_woocommerce_order_status_completed_action', 10, 1 ); //WC 1.0
-        //add_filter('woocommerce_login_credentials', 'acumbamail_woocommerce_login_credentials', 10); // WC 1.0
         add_action('wp_login', 'acumbamail_custom_action_after_login', 10, 2);
         add_action('template_redirect', 'acumbamail_check_cart_after_login');
         add_action( 'woocommerce_thankyou', 'acumbamail_woocommerce_thankyou_action' ); // WC 1.0
@@ -62,6 +63,11 @@ if (in_array('woocommerce/woocommerce.php', apply_filters( 'active_plugins', get
 }
 
 function has_block_in_page( $page, $block_name ) {
+    // parse_blocks() exists since WP 5.0; without it there can be no block-based cart/checkout.
+    if ( ! function_exists( 'parse_blocks' ) ) {
+        return false;
+    }
+
     $page_to_check = get_post( $page );
 
     if ( null === $page_to_check || 'page' !== $page_to_check->post_type) {
@@ -106,7 +112,7 @@ function acumbamail_woocommerce_thankyou_action($order_id) {
 
 function get_version_wc() {
     $woo_version = "";
-    if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) {
+    if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core filter.
 
         if ( ! function_exists( 'get_plugins' ) ) {
             require_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -225,21 +231,46 @@ function acumbamail_woocommerce_new_order_action( $order_id ){
 	}
 }
 
+/**
+ * Remembers, for the current request only, the orders whose payment is being completed,
+ * so the "completed" status change fired inside payment_complete() does not notify twice.
+ */
+function acumbamail_woocommerce_payment_in_progress( $order_id, $set = false ) {
+	static $orders = array();
+	if ( $set ) {
+		$orders[ $order_id ] = true;
+	}
+	return isset( $orders[ $order_id ] );
+}
+
+function acumbamail_woocommerce_pre_payment_complete_action( $order_id ) {
+	acumbamail_woocommerce_payment_in_progress( $order_id, true );
+}
+
 function acumbamail_woocommerce_payment_complete_action( $id, $transaction_id=null ){
 	if (function_exists('WC') && !is_null(WC())) {
 		$options = get_option('acumbamail_options');
 		if (!empty($options) && !empty($options['auth_token']) && !empty($options['state_cart']) && $options['state_cart'] == "enabled") {
 			$api = new AcumbamailAPI('', $options['auth_token']);
 			$api->paymentCompleteActionWoocommerce($id, $transaction_id);
-			// Flag to avoid duplicate call from woocommerce_order_status_completed
-			update_post_meta($id, '_acumba_payment_complete_notified', '1');
+			// Flag to avoid duplicate call from woocommerce_order_status_completed (stored through the order for HPOS)
+			$order = wc_get_order($id);
+			if ($order) {
+				$order->update_meta_data('_acumba_payment_complete_notified', '1');
+				$order->save_meta_data();
+			}
 		}
 	}
 }
 
 function acumbamail_woocommerce_order_status_completed_action( $order_id ) {
+	// Payment being completed in this request: woocommerce_payment_complete notifies right after
+	if ( acumbamail_woocommerce_payment_in_progress( $order_id ) ) {
+		return;
+	}
 	// Skip if already notified via woocommerce_payment_complete (payment gateway)
-	if ( get_post_meta( $order_id, '_acumba_payment_complete_notified', true ) ) {
+	$order = wc_get_order( $order_id );
+	if ( $order && acumbamail_get_order_meta( $order, '_acumba_payment_complete_notified' ) ) {
 		return;
 	}
 	if (function_exists('WC') && !is_null(WC())) {
@@ -249,39 +280,6 @@ function acumbamail_woocommerce_order_status_completed_action( $order_id ) {
 			$api->paymentCompleteActionWoocommerce($order_id);
 		}
 	}
-}
-
-function acumbamail_woocommerce_login_credentials($creds) {
-	$creds['user_login'] = sanitize_text_field($creds['user_login']);
-    $creds['user_password'] = sanitize_text_field($creds['user_password']);
-
-    // Verify if a username or an email address was provided.
-    if (isset($creds['user_login'])) {
-        $username = $creds['user_login'];
-    } else {
-        return $creds; // There is not enough data to validate
-    }
-
-    // Get the user by username or email address
-    $user = get_user_by('login', $username);
-    if (!$user) {
-        $user = get_user_by('email', $username);
-    }
-
-    // Verify if the user exists and the credentials are correct
-    if ($user && wp_check_password($creds['user_password'], $user->data->user_pass, $user->ID)) {
-        $options = get_option('acumbamail_options');
-    	$api = new AcumbamailAPI('', $options['auth_token']);
-    	$api->loguinWoocommerce($user);	//
-        // Valid credentials, return the username and password
-        return array(
-            'user_login'    => $user->user_login,
-            'user_password' => $creds['user_password'],
-            'remember'      => isset($creds['user_remember']) ? $creds['user_remember'] : false,
-        );
-        //
-
-    }
 }
 
 function acumbamail_load_textdomain() {
@@ -414,6 +412,19 @@ function acumbamail_register_woocommerce_settings_section($api, $lists) {
                            'acumbamail_woocommerce',
                            'acumbamail_woocommerce'
         );
+        add_settings_field('acumbamail_woocommerce_double_optin',
+                           __('Send confirmation email (double opt-in)', 'acumbamail-signup-forms') . ': ',
+                           'acumbamail_woocommerce_double_optin_field',
+                           'acumbamail_woocommerce',
+                           'acumbamail_woocommerce',
+                           array('label_for' => 'acumbamail_woocommerce_double_optin')
+        );
+        add_settings_field('acumbamail_woocommerce_subscribe_statuses',
+                           __('Order statuses that subscribe the customer', 'acumbamail-signup-forms') . ': ',
+                           'acumbamail_woocommerce_subscribe_statuses_field',
+                           'acumbamail_woocommerce',
+                           'acumbamail_woocommerce'
+        );
     }
 
 }
@@ -532,7 +543,7 @@ function acumbamail_get_form_details() {
 function acumbamail_options_validate($input) {
     // Verificar nonce
     if (isset($_POST['_wpnonce'])) {
-        if (!wp_verify_nonce($_POST['_wpnonce'], 'acumbamail_options-options')) {
+        if (!wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['_wpnonce'])), 'acumbamail_options-options')) {
             wp_die('Security check failed');
         }
     } else {
@@ -543,8 +554,14 @@ function acumbamail_options_validate($input) {
     }
 
     if (isset($_POST['reset'])) {  // phpcs:ignore WordPress.Security.NonceVerification.Missing
-        $output = var_export($_POST, true); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export, WordPress.Security.NonceVerification.Missing
         return array();
+    }
+
+    if (isset($input['woocommerce_double_optin'])) {
+        $input['woocommerce_double_optin'] = $input['woocommerce_double_optin'] === '1' ? '1' : '0';
+    }
+    if (isset($input['woocommerce_subscribe_statuses'])) {
+        $input['woocommerce_subscribe_statuses'] = acumbamail_sanitize_order_statuses($input['woocommerce_subscribe_statuses']);
     }
 
     $options = get_option('acumbamail_options');
@@ -570,6 +587,76 @@ function acumbamail_subscription_sentence_field() {
         $value = $options['subscription_sentence'];
     }
     echo "<input id='subscription_sentence_field' name='acumbamail_options[subscription_sentence]' size=20 type='text' value='" . esc_attr($value) . "'>";
+}
+
+/**
+ * Whether checkout subscriptions must be confirmed by email. Disabled by default, as in previous versions.
+ */
+function acumbamail_woocommerce_double_optin_enabled() {
+    $options = get_option('acumbamail_options');
+    return isset($options['woocommerce_double_optin']) && $options['woocommerce_double_optin'] === '1';
+}
+
+/**
+ * Order statuses (without the "wc-" prefix) that trigger the checkout subscription.
+ * "processing" always does, as in previous versions; the others are optional.
+ */
+function acumbamail_woocommerce_subscribe_statuses() {
+    $options = get_option('acumbamail_options');
+    $extra_statuses = array();
+    if (isset($options['woocommerce_subscribe_statuses']) && is_array($options['woocommerce_subscribe_statuses'])) {
+        $extra_statuses = acumbamail_sanitize_order_statuses($options['woocommerce_subscribe_statuses']);
+    }
+    return array_values(array_unique(array_merge(array('processing'), $extra_statuses)));
+}
+
+/**
+ * Optional order statuses that can also trigger the checkout subscription, with their WooCommerce labels.
+ * Fixed list: statuses such as pending, failed, cancelled or refunded make no sense here.
+ */
+function acumbamail_get_order_statuses() {
+    $wc_statuses = function_exists('wc_get_order_statuses') ? wc_get_order_statuses() : array();
+    $statuses = array();
+    foreach (array('completed', 'on-hold') as $status) {
+        $statuses[$status] = isset($wc_statuses['wc-' . $status]) ? $wc_statuses['wc-' . $status] : $status;
+    }
+    return $statuses;
+}
+
+function acumbamail_sanitize_order_statuses($statuses) {
+    if (!is_array($statuses)) {
+        return array();
+    }
+    $valid_statuses = array_keys(acumbamail_get_order_statuses());
+    $sanitized = array();
+    foreach ($statuses as $status) {
+        $status = sanitize_key($status);
+        if (in_array($status, $valid_statuses, true)) {
+            $sanitized[] = $status;
+        }
+    }
+    return array_values(array_unique($sanitized));
+}
+
+function acumbamail_woocommerce_double_optin_field() {
+    // Hidden field so that unchecking the checkbox is saved (options are merged on save)
+    echo "<input type='hidden' name='acumbamail_options[woocommerce_double_optin]' value='0'>";
+    echo "<input id='acumbamail_woocommerce_double_optin' name='acumbamail_options[woocommerce_double_optin]' type='checkbox' value='1' " . checked(acumbamail_woocommerce_double_optin_enabled(), true, false) . ">";
+    echo "<p class='description' style='max-width:600px'>" . esc_html__('Recommended. Customers must confirm their subscription by email before becoming active subscribers. As the data controller, you decide which consent method the regulations that apply to you require.', 'acumbamail-signup-forms') . "</p>";
+}
+
+function acumbamail_woocommerce_subscribe_statuses_field() {
+    $selected = acumbamail_woocommerce_subscribe_statuses();
+    // Hidden field so that unchecking every status is saved (options are merged on save)
+    echo "<input type='hidden' name='acumbamail_options[woocommerce_subscribe_statuses][]' value=''>";
+    // "processing" always subscribes: shown checked and disabled so the list reflects every status that subscribes
+    $wc_statuses = function_exists('wc_get_order_statuses') ? wc_get_order_statuses() : array();
+    $processing_label = isset($wc_statuses['wc-processing']) ? $wc_statuses['wc-processing'] : 'processing';
+    echo "<label style='display:block'><input type='checkbox' checked='checked' disabled='disabled'> " . esc_html($processing_label) . " (" . esc_html__('Not optional', 'acumbamail-signup-forms') . ")</label>";
+    foreach (acumbamail_get_order_statuses() as $status => $label) {
+        echo "<label style='display:block'><input name='acumbamail_options[woocommerce_subscribe_statuses][]' type='checkbox' value='" . esc_attr($status) . "' " . checked(in_array($status, $selected, true), true, false) . "> " . esc_html($label) . "</label>";
+    }
+    echo "<p class='description' style='max-width:600px'>" . esc_html__('Customers are subscribed when their order changes to one of these statuses. Only once per order, so they receive a single confirmation email.', 'acumbamail-signup-forms') . "</p>";
 }
 
 function acumbamail_list_id_field($additional_args) {
@@ -611,7 +698,8 @@ function acumbamail_woocommerce_add_subscription_check_field_block() {
             $subscription_sentence = $options['subscription_sentence'];
         }
 
-		if (isset($options) && isset($options['woocommerce_list_id']) && !empty($options['woocommerce_list_id'])) {
+		// Additional checkout fields require WooCommerce 8.9+: on older versions skip the checkbox instead of a fatal error
+		if (function_exists('woocommerce_register_additional_checkout_field') && isset($options) && isset($options['woocommerce_list_id']) && !empty($options['woocommerce_list_id'])) {
 			woocommerce_register_additional_checkout_field(
 				array(
 					'id'       => 'acumbamail-signup-forms/acumba_subscribe',
@@ -654,20 +742,67 @@ function acumbamail_woocommerce_add_subscription_field_to_order_block($order, $r
 		$data = $request->get_json_params();
 		$additional_fields = $data['additional_fields'] ?? [];
 
+		// Stored through the order (not post meta) so it works with every order storage mode (HPOS);
+		// WooCommerce saves the order after this hook
 		if ( isset( $additional_fields['acumbamail-signup-forms/acumba_subscribe'] ) && $additional_fields['acumbamail-signup-forms/acumba_subscribe'] ) {
-			update_post_meta( $order->get_id(), 'acumba_subscribe', '1' );
-			//error_log( '🟢 Usuario se suscribió' );
+			$order->update_meta_data( 'acumba_subscribe', '1' );
 		} else {
-			update_post_meta( $order->get_id(), 'acumba_subscribe', '0' );
-			//error_log( '🔴 Usuario no se suscribió' );
+			$order->update_meta_data( 'acumba_subscribe', '0' );
 		}
 	}
 }
 
-function acumbamail_woocommerce_add_subscription_field_to_order($order_id) {
+function acumbamail_woocommerce_add_subscription_field_to_order($order, $data = array()) {
     if (isset($_POST['acumba_subscribe']) && !empty($_POST['acumba_subscribe'])) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.NonceVerification.Missing
-        update_post_meta($order_id, 'acumba_subscribe', sanitize_text_field(wp_unslash($_POST['acumba_subscribe']))); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        // Stored through the order (not post meta) so it works with every order storage mode (HPOS);
+        // WooCommerce saves the order after this hook
+        $order->update_meta_data('acumba_subscribe', sanitize_text_field(wp_unslash($_POST['acumba_subscribe']))); // phpcs:ignore WordPress.Security.NonceVerification.Missing
     }
+}
+
+/**
+ * Reads an order meta value, falling back to post meta for orders saved by versions <= 2.0.28,
+ * which wrote it directly with update_post_meta().
+ */
+function acumbamail_get_order_meta($order, $key) {
+    $value = $order->get_meta($key);
+    if ($value === '' || $value === null) {
+        $value = get_post_meta($order->get_id(), $key, true);
+    }
+    return $value;
+}
+
+/**
+ * Stores when configurable order statuses became available (2.0.29), so that orders already
+ * subscribed by previous versions (which only used "processing") are not subscribed again.
+ */
+function acumbamail_woocommerce_statuses_since() {
+    $since = get_option('acumbamail_woo_statuses_since');
+    if ($since === false) {
+        $since = time();
+        add_option('acumbamail_woo_statuses_since', $since);
+    }
+    return (int) $since;
+}
+
+function acumbamail_woocommerce_order_status_changed($order_id, $old_status, $new_status) {
+    if (!in_array($new_status, acumbamail_woocommerce_subscribe_statuses(), true)) {
+        return;
+    }
+    $order = wc_get_order($order_id);
+    if (!$order) {
+        return;
+    }
+    // Orders created before updating to 2.0.29 that previous versions already handled
+    // (they subscribed the customer when the order reached "processing") are not subscribed again
+    $created = $order->get_date_created();
+    if ($created && $created->getTimestamp() < acumbamail_woocommerce_statuses_since()) {
+        $paid = $order->get_date_paid();
+        if ($old_status === 'processing' || ($paid && $paid->getTimestamp() < acumbamail_woocommerce_statuses_since())) {
+            return;
+        }
+    }
+    acumbamail_woocommerce_subscribe_client($order_id);
 }
 
 function acumbamail_woocommerce_subscribe_client($order_id) {
@@ -678,13 +813,32 @@ function acumbamail_woocommerce_subscribe_client($order_id) {
     if ( ! $order ) {
         return; // pedido no existe
     }
-    $acumba_subscribe = get_post_meta($order_id, 'acumba_subscribe', true);
+    // Subscribe only once per order, even if it goes through several selected statuses
+    if ($order->get_meta('_acumbamail_subscribed')) {
+        return;
+    }
+    $acumba_subscribe = acumbamail_get_order_meta($order, 'acumba_subscribe');
+    if ($acumba_subscribe === '' || $acumba_subscribe === null) {
+        // Block checkout: WooCommerce also stores the additional field itself, which survives HPOS sync
+        // for orders saved by versions <= 2.0.28
+        $acumba_subscribe = $order->get_meta('_wc_other/acumbamail-signup-forms/acumba_subscribe');
+    }
     if ($acumba_subscribe) {
         $subscriber_fields = array();
         $subscriber_fields['email'] = $order->get_billing_email();
         $options = get_option('acumbamail_options');
+        $double_optin = acumbamail_woocommerce_double_optin_enabled() ? '1' : '0';
         $api = new AcumbamailAPI('', $options['auth_token']);
-        $api->addSubscriber($options['woocommerce_list_id'], $subscriber_fields);
+        $response = $api->addSubscriber($options['woocommerce_list_id'], $subscriber_fields, $double_optin);
+        $response_code = $api->getLastResponseCode();
+        if ($response !== null) {
+            $order->update_meta_data('_acumbamail_subscribed', '1');
+            $order->save_meta_data();
+        } elseif ($response_code >= 400 && $response_code < 500) {
+            // Definitive rejection (e.g. subscriber already in the list): do not retry on later statuses
+            $order->update_meta_data('_acumbamail_subscribed', 'error_' . $response_code);
+            $order->save_meta_data();
+        }
     }
 }
 
@@ -704,8 +858,12 @@ function acumba_state_cart_button() {
 function acumbamail_update_state_cart() {
 
     // Verificar nonce
-    if (!wp_verify_nonce($_POST['nonce'], 'acumbamail_cart_nonce')) {
+    $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+    if (!wp_verify_nonce($nonce, 'acumbamail_cart_nonce')) {
         wp_die('Security check failed');
+    }
+    if (!current_user_can('manage_options')) {
+        wp_die('Insufficient permissions');
     }
 
     $options = get_option('acumbamail_options');

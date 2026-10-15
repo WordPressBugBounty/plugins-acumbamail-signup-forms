@@ -4,10 +4,23 @@
 class AcumbamailAPI {
     private $auth_token;
     private $customer_id;
+    // HTTP code of the last API call (0 on connection error)
+    private $last_response_code = 0;
 
     function __construct($customer_id, $auth_token){
         $this->auth_token = $auth_token;
         $this->customer_id = $customer_id;
+    }
+
+    public function getLastResponseCode() {
+        return $this->last_response_code;
+    }
+
+    // Only logs when WP_DEBUG is enabled, so a failing API never fills the store's log
+    private function log_error($message) {
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('Acumbamail API ' . $message); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+        }
     }
 
     public function setAuthToken($auth_token) {
@@ -470,6 +483,29 @@ class AcumbamailAPI {
         $order->save();
     }
 
+    /**
+     * Returns the id of the order the customer has created but not paid yet,
+     * so that cart updates do not wipe it in Acumbamail. Empty if there is none.
+     */
+    private function get_pending_order_id() {
+        if (!function_exists('WC') || !WC()->session) {
+            return "";
+        }
+
+        // Classic checkout stores it in order_awaiting_payment, block checkout in store_api_draft_order
+        foreach (array('order_awaiting_payment', 'store_api_draft_order') as $key) {
+            $order_id = absint(WC()->session->get($key));
+            if ($order_id) {
+                $order = wc_get_order($order_id);
+                if ($order && $order->has_status(array('pending', 'failed'))) {
+                    return (string) $order_id;
+                }
+            }
+        }
+
+        return "";
+    }
+
     private function get_or_generate_id_customer() {
 		if (isset($_COOKIE['id_acb_ctmer'])) {
 			$id_customer = sanitize_text_field(wp_unslash($_COOKIE['id_acb_ctmer']));
@@ -539,10 +575,6 @@ class AcumbamailAPI {
 		$customer_id = $this->get_id_temp_customer();
         $order_id = "";
 
-		if (WC()->order != null) {
-			$order_id =  WC()->order->id;
-		}
-
 		$data = array(
 			'cart_customer_id' => $customer_id,
 		    'cart_user_id' => $user->ID,
@@ -575,7 +607,7 @@ class AcumbamailAPI {
 		$data['cart_url'] =  wc_get_cart_url();
 		$data['cart_product'] = wp_json_encode($product);
 		$data['cart_contents_total'] = $cart->get_cart_contents_count();
-		$data['cart_total']= $cart->total . " " . get_woocommerce_currency_symbol();
+		$data['cart_total']= $cart->get_total('edit') . " " . get_woocommerce_currency_symbol();
        	$data['registered'] = is_user_logged_in();
 
 		$this->callAPI($request,$data);
@@ -606,9 +638,6 @@ class AcumbamailAPI {
 		$customer_email = $this->get_email_customer_session();
 
 		$order_id = "";
-		if (WC()->order != null) {
-			$order_id =  WC()->order->id;
-		}
 
 		$data = array(
 		    'cart_customer_id' => $customer_id,
@@ -620,7 +649,7 @@ class AcumbamailAPI {
 
 		$data['cart_item_key_remove'] = $cart_item_key_remove;
 		$cart->calculate_totals();
-		$data['cart_total'] =  $cart->total . " " . get_woocommerce_currency_symbol();
+		$data['cart_total'] =  $cart->get_total('edit') . " " . get_woocommerce_currency_symbol();
 		$data['cart_contents_total'] = $cart->get_cart_contents_count();
 		$data['cart_id'] = $this->get_or_generate_id_cart();
 		$this->callAPI($request,$data);
@@ -633,10 +662,7 @@ class AcumbamailAPI {
         $customer_id = $this->get_or_generate_id_customer();
         $customer_email = $this->get_email_customer_session();
 
-        $order_id = "";
-        if (WC()->order != null) {
-            $order_id =  WC()->order->id;
-        }
+        $order_id = $this->get_pending_order_id();
 
         $data = array(
             'cart_customer_id' => $customer_id,
@@ -669,7 +695,7 @@ class AcumbamailAPI {
         $data['cart_url'] =  wc_get_cart_url();
         $data['cart_product'] = wp_json_encode($product);
         $data['cart_contents_total'] = $cart->get_cart_contents_count();
-        $data['cart_total']= $cart->total . " " . get_woocommerce_currency_symbol();
+        $data['cart_total']= $cart->get_total('edit') . " " . get_woocommerce_currency_symbol();
         $data['cart_event'] = $event;
         $data['cart_id'] = $this->get_or_generate_id_cart();
         $data['registered'] = is_user_logged_in();
@@ -691,6 +717,7 @@ class AcumbamailAPI {
     // Realiza la llamada a la API de Acumbamail con los datos proporcionados
     function callAPI($request, $data = array()){
         $url = "https://acumbamail.com/api/1/".$request.'/';
+        $this->last_response_code = 0;
 
         if (empty($this->auth_token)) {
             return null;
@@ -717,12 +744,22 @@ class AcumbamailAPI {
         ));
 
         if (is_wp_error($response)) {
-            error_log($response);
+            $this->log_error($request . ' error: ' . $response->get_error_message());
             return null;
-            //print_r($response); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
         }
-        elseif (wp_remote_retrieve_response_code($response) != 200) {
-            echo '<div class="notice notice-error"><p><strong>No se ha podido establecer conexión. Error ' . wp_remote_retrieve_response_code($response) . '</strong></p></div>';
+        $response_code = (int) wp_remote_retrieve_response_code($response);
+        $this->last_response_code = $response_code;
+        // Some methods (e.g. addSubscriber) answer 201 on success
+        if ($response_code < 200 || $response_code >= 300) {
+            $this->log_error($request . ' error: HTTP ' . $response_code);
+            // Never print here: this also runs during checkout and order status changes, where output breaks
+            // JSON responses and redirects. Show the error as an admin notice instead.
+            if (is_admin() && !wp_doing_ajax()) {
+                add_action('admin_notices', function () use ($response_code) {
+                    /* translators: %d: HTTP response code */
+                    echo '<div class="notice notice-error"><p><strong>' . esc_html(sprintf(__('Could not connect to Acumbamail. Error %d', 'acumbamail-signup-forms'), $response_code)) . '</strong></p></div>';
+                });
+            }
             return null;
         }
         else {

@@ -1,3 +1,4 @@
+<?php defined( 'ABSPATH' ) || exit; ?>
 <div class="wrap">
     <div id="poststuff">
         <div id="post-body" class="metabox-holder columns-2">

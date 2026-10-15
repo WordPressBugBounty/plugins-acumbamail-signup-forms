@@ -5,10 +5,9 @@ Requires at least: 4.7
 Tested up to: 7.1
 Requires PHP: 7.4
 WC requires at least: 3.6
-WC tested up to: 10.0
-Requires Plugins: woocommerce
+WC tested up to: 11.2
 WooCommerce HPOS Compatibility: true
-Stable tag: 2.0.28
+Stable tag: 2.0.29
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -30,7 +29,7 @@ How to install?
 
 3. Configure your Acumbamail account inside Wordpress Admin
 
-(Remember that you must have cURL installed on your server)
+WooCommerce: the subscription checkbox works in the classic checkout from WooCommerce 3.6. In the block-based checkout it requires WooCommerce 8.9 or later.
 
 More info:
 https://acumbamail.com/en/integrations/wordpress/
@@ -43,12 +42,23 @@ https://acumbamail.com/en/integrations/wordpress/
 
 3. Configura tu cuenta y tu lista de acumbamail desde el panel de administración de Wordpress
 
-(Recuerda que debes tener instalado cURL en tu servidor)
+WooCommerce: la casilla de suscripción funciona en el checkout clásico desde WooCommerce 3.6. En el checkout de bloques requiere WooCommerce 8.9 o superior.
 
 Más información:
 https://acumbamail.com/integraciones/wordpress/
 
 == Changelog ==
+= 2.0.29 =
+* WooCommerce: new option to send a confirmation email (double opt-in) for checkout subscriptions
+* WooCommerce: new option to also subscribe customers when the order changes to Completed or On hold
+* WooCommerce: customers are subscribed only once per order
+* Fix checkout subscriptions not working with WooCommerce HPOS in compatibility mode
+* Fix errors that could break the checkout when the Acumbamail API was not reachable
+* Fix successful subscriptions being logged as errors
+* Fix error with WooCommerce older than 8.9 when the checkout or cart uses blocks
+* Fix error when uninstalling the plugin on some servers
+* Abandoned cart fixes
+
 = 2.0.28 =
 * WordPress 7.1 compatibility
 
@@ -223,3 +233,8 @@ https://acumbamail.com/integraciones/wordpress/
 
 = 1.0 =
 * First Version / Primera versión
+
+== Upgrade Notice ==
+
+= 2.0.29 =
+New WooCommerce options: send a confirmation email (double opt-in) for checkout subscriptions and also subscribe customers when the order changes to Completed or On hold. Default behaviour does not change. See Acumbamail > Woocommerce.

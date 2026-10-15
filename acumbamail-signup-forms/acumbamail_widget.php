@@ -37,7 +37,8 @@ class Acumbamail_Widget extends WP_Widget {
             if ($form_details['classic'] == 'yes') {
                 echo '<br><div id=' . esc_attr($form_details['div_id']) . '></div>';
             }
-            wp_enqueue_script( 'acumbamail-form', $form_details['js_link'], array(), null, true );
+            // Remote script served and versioned by Acumbamail; adding ?ver= would only break its cache.
+            wp_enqueue_script( 'acumbamail-form', $form_details['js_link'], array(), null, true ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
         }
     }
 }

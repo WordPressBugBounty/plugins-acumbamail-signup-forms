@@ -4,9 +4,10 @@ if ( !defined( 'WP_UNINSTALL_PLUGIN' ) )
     exit();
 
 delete_option('acumbamail_options');
+delete_option('acumbamail_woo_statuses_since');
 
 try {
-    $translation_files = glob(WP_CONTENT_DIR . '/languages/plugins/acumbamail-signup-forms-es_ES.*', GLOB_BRACE);
+    $translation_files = glob(WP_CONTENT_DIR . '/languages/plugins/acumbamail-signup-forms-es_ES.*');
     if ($translation_files) {
         foreach ($translation_files as $file) {
             if (is_file($file)) {

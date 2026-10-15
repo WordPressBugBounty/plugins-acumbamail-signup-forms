@@ -296,3 +296,22 @@ msgstr ""
 
 #~ msgid "You have been successfully subscribed"
 #~ msgstr "Te has suscrito correctamente"
+
+msgid "Send confirmation email (double opt-in)"
+msgstr "Enviar email de confirmación (doble opt-in)"
+
+msgid "Order statuses that subscribe the customer"
+msgstr "Estados del pedido que suscriben al cliente"
+
+msgid "Not optional"
+msgstr "No opcional"
+
+msgid "Recommended. Customers must confirm their subscription by email before becoming active subscribers. As the data controller, you decide which consent method the regulations that apply to you require."
+msgstr "Recomendado. Los clientes deben confirmar su suscripción por email antes de quedar como suscriptores activos. Como responsable del tratamiento, decides qué método de consentimiento exige la normativa que te aplica."
+
+msgid "Customers are subscribed when their order changes to one of these statuses. Only once per order, so they receive a single confirmation email."
+msgstr "El cliente se suscribe cuando su pedido pasa a uno de estos estados. Solo una vez por pedido, por lo que recibirá un único email de confirmación."
+
+#, php-format
+msgid "Could not connect to Acumbamail. Error %d"
+msgstr "No se ha podido establecer conexión con Acumbamail. Error %d"

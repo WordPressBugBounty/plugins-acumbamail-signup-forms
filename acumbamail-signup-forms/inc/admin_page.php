@@ -1,3 +1,4 @@
+<?php defined( 'ABSPATH' ) || exit; ?>
 <div class="wrap">
     <div id="poststuff">
         <div id="post-body" class="metabox-holder columns-2">
@@ -72,7 +73,7 @@
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: 'action=action_update_state_cart&nonce=' + '<?php echo wp_create_nonce("acumbamail_cart_nonce"); ?>'
+                body: 'action=action_update_state_cart&nonce=' + '<?php echo esc_js( wp_create_nonce( 'acumbamail_cart_nonce' ) ); ?>'
             })
             .then(response => response.text())
             .then(data => {
