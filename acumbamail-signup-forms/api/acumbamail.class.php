@@ -420,27 +420,54 @@ class AcumbamailAPI {
         return $this->callAPI($request, $data);
     }
 
+	// Abandoned cart cookies: same name, path and host as before, plus secure (on https), httponly and SameSite
+	private function set_cart_cookie($name, $value, $expires) {
+		setcookie($name, $value, array(
+			'expires'  => $expires,
+			'path'     => '/',
+			'secure'   => is_ssl(),
+			'httponly' => true,
+			'samesite' => 'Lax',
+		));
+	}
+
 	function delete_cookies_cart(){
 		if (isset($_COOKIE['id_acb_ctmer'])) {
-			setcookie('id_acb_ctmer', '', time() - (86400 * 2), "/");
+			$this->set_cart_cookie('id_acb_ctmer', '', time() - (86400 * 2));
 		}
 
 		if (isset($_COOKIE['id_acb_cart'])) {
-			setcookie('id_acb_cart', '', time() - (86400 * 2), "/");
+			$this->set_cart_cookie('id_acb_cart', '', time() - (86400 * 2));
 		}
 	}
 
-	private function get_email_customer_session() {
-		$customer_email = "";
-		// Verificar si la sesión está iniciada y contiene datos
-		if (WC()->session && WC()->session->get('customer')) {
-			$customer_data = WC()->session->get('customer');
-
-			if (isset($customer_data['email'])) {
-				$customer_email = $customer_data['email'];
+	/**
+	 * Email sent with cart events: only the account email of a logged-in customer.
+	 * Anonymous shoppers are not identified (not even with the email typed at checkout).
+	 */
+	private function get_cart_customer_email() {
+		if (is_user_logged_in()) {
+			$user = wp_get_current_user();
+			if ($user && $user->exists()) {
+				return $user->user_email;
 			}
 		}
-		return $customer_email;
+		return "";
+	}
+
+	/**
+	 * Email sent with order events: the account email of the order's customer, never the
+	 * current user (an admin can complete the order, or the gateway can notify with no session).
+	 * Guest orders are anonymous.
+	 */
+	private function get_order_customer_email($order) {
+		if ($order && $order->get_customer_id()) {
+			$user = get_userdata($order->get_customer_id());
+			if ($user) {
+				return $user->user_email;
+			}
+		}
+		return "";
 	}
 
     public function paymentCompleteActionWoocommerce($id, $transaction_id=null )	{
@@ -451,7 +478,7 @@ class AcumbamailAPI {
         $id_acb_ctmer = $order->get_meta('id_acb_ctmer');
 
         $customer_id = $id_acb_ctmer;
-        $customer_email = $this->get_email_customer_session();
+        $customer_email = $this->get_order_customer_email($order);
 
         $this->delete_cookies_cart();
 
@@ -511,7 +538,7 @@ class AcumbamailAPI {
 			$id_customer = sanitize_text_field(wp_unslash($_COOKIE['id_acb_ctmer']));
 		} else {
 			$id_customer = $this->generate_id_temp_customer();
-			setcookie('id_acb_ctmer', $id_customer, time() + (86400 * 2), "/");
+			$this->set_cart_cookie('id_acb_ctmer', $id_customer, time() + (86400 * 2));
 		}
 
 		if (is_user_logged_in()) {
@@ -542,7 +569,7 @@ class AcumbamailAPI {
 			$id_cart = sanitize_text_field(wp_unslash($_COOKIE['id_acb_cart']));
 		} else {
 			$id_cart = $this->generate_id_cart();
-			setcookie('id_acb_cart', $id_cart, time() + (86400 * 2), "/");
+			$this->set_cart_cookie('id_acb_cart', $id_cart, time() + (86400 * 2));
 		}
 
 		return $id_cart;
@@ -616,7 +643,7 @@ class AcumbamailAPI {
 	public function newOrderWoocommerce($order_id) {
 		$request = "newOrderCart";
 		$customer_id = $this->get_or_generate_id_customer();
-        $customer_email = $this->get_email_customer_session();
+        $customer_email = $this->get_order_customer_email(wc_get_order($order_id));
 
 		$data = array(
 		    'cart_customer_id' => $customer_id,
@@ -635,7 +662,7 @@ class AcumbamailAPI {
    	public function removeWoocommerceCart($cart, $cart_item_key_remove) {
         $request = "removeItemCart";
 		$customer_id = $this->get_or_generate_id_customer();
-		$customer_email = $this->get_email_customer_session();
+		$customer_email = $this->get_cart_customer_email();
 
 		$order_id = "";
 
@@ -660,7 +687,7 @@ class AcumbamailAPI {
         $request = "addItemCart";
 
         $customer_id = $this->get_or_generate_id_customer();
-        $customer_email = $this->get_email_customer_session();
+        $customer_email = $this->get_cart_customer_email();
 
         $order_id = $this->get_pending_order_id();
 

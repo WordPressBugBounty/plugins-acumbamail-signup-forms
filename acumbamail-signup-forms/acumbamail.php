@@ -4,7 +4,7 @@
    Plugin Name: Acumbamail
    Plugin URI: https://acumbamail.com/en/integrations/wordpress/
    Description: Integrate your Acumbamail forms in your Wordpress pages
-   Version: 2.0.29
+   Version: 2.0.30
    Author: Acumbamail
    Author URI: https://acumbamail.com
    Text Domain: acumbamail-signup-forms
@@ -27,9 +27,9 @@ require('acumbamail_widget.php');
 add_action('init', 'acumbamail_load_textdomain' );
 add_action('admin_menu', 'acumbamail_configuration');
 add_action('admin_init', 'acumbamail_admin_init');
-add_action('widgets_init', 'register_acumbamail_widget');
+add_action('widgets_init', 'acumbamail_register_widget');
 
-add_action( 'before_woocommerce_init', 'declare_woo_hpos_compatibility');
+add_action( 'before_woocommerce_init', 'acumbamail_declare_woo_hpos_compatibility');
 
 
 
@@ -45,7 +45,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters( 'active_plugins', get
     //checkout blocks
     add_action('woocommerce_store_api_checkout_update_order_from_request', 'acumbamail_woocommerce_add_subscription_field_to_order_block',10,2); // WC 7.2.0
 
-    if (min_version_cart()) {
+    if (acumbamail_min_version_cart()) {
         add_action('woocommerce_add_to_cart', 'acumbamail_woocommerce_add_to_cart', 10, 1); // WC 2.5.0
         add_action('woocommerce_cart_item_removed', 'acumbamail_woocommerce_cart_item_removed',10,2); // WC 1.0
         add_action('woocommerce_cart_item_set_quantity', 'acumbamail_woocommerce_cart_item_set_quantity',10,3); // WC 3.6.0
@@ -62,7 +62,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters( 'active_plugins', get
 
 }
 
-function has_block_in_page( $page, $block_name ) {
+function acumbamail_has_block_in_page( $page, $block_name ) {
     // parse_blocks() exists since WP 5.0; without it there can be no block-based cart/checkout.
     if ( ! function_exists( 'parse_blocks' ) ) {
         return false;
@@ -84,17 +84,17 @@ function has_block_in_page( $page, $block_name ) {
     return false;
 }
 
-function is_checkout_cart_block() {
+function acumbamail_is_checkout_cart_block() {
 	try {
-        return has_block_in_page( wc_get_page_id('cart'), 'woocommerce/cart' );
+        return acumbamail_has_block_in_page( wc_get_page_id('cart'), 'woocommerce/cart' );
 	} catch(Exception $e) {
 	}
 	return false;
 }
 
-function is_checkout_block() {
+function acumbamail_is_checkout_block() {
 	try {
-    	return has_block_in_page( wc_get_page_id('checkout'), 'woocommerce/checkout' );
+    	return acumbamail_has_block_in_page( wc_get_page_id('checkout'), 'woocommerce/checkout' );
 	} catch(Exception $e){
 	}
     return false;
@@ -110,7 +110,7 @@ function acumbamail_woocommerce_thankyou_action($order_id) {
 	}
 }
 
-function get_version_wc() {
+function acumbamail_get_version_wc() {
     $woo_version = "";
     if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core filter.
 
@@ -127,10 +127,10 @@ function get_version_wc() {
     return $woo_version;
 }
 
-function min_version_cart() {
+function acumbamail_min_version_cart() {
     global $wp_version;
     $wp_ok = version_compare($wp_version, '4.7', '>=' );
-    $wc_ok = version_compare(get_version_wc(), '3.6', '>=' );
+    $wc_ok = version_compare(acumbamail_get_version_wc(), '3.6', '>=' );
 
     return $wp_ok && $wc_ok;
 }
@@ -138,43 +138,74 @@ function min_version_cart() {
 /**
  *  Declare the woo HPOS compatibility.
  */
-function declare_woo_hpos_compatibility() {
+function acumbamail_declare_woo_hpos_compatibility() {
 
     if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
         \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
     }
 }
 
-function acumbamail_custom_action_after_login($user_login, $user) {
-	update_option('custom_user_logged_in', true);
+function acumbamail_cart_enabled_options() {
+	$options = get_option('acumbamail_options');
+	if (!empty($options) && !empty($options['auth_token']) && !empty($options['state_cart']) && $options['state_cart'] == "enabled") {
+		return $options;
+	}
+	return null;
 }
 
-function acumbamail_check_cart_after_login() {
-	if (function_exists('WC') && !is_null(WC())) {
-		if (get_option('custom_user_logged_in')) {
-			$options = get_option('acumbamail_options');
-			if (!empty($options) && !empty($options['auth_token']) && !empty($options['state_cart']) && $options['state_cart'] == "enabled") {
-				// Verificar que haya un usuario autenticado
-				$current_user = wp_get_current_user();
-				if (!$current_user || 0 === $current_user->ID) {
-					//No se encontró ningún usuario autenticado
-					return;
-				}
-				// Verificar si el carrito de WooCommerce está disponible y no está vacío
-				$cart = WC()->cart;
-				if (!$cart || is_null($cart) || sizeof($cart->get_cart()) == 0) {
-					//El carrito de WooCommerce no está disponible o está vacío.
-					return;
-				}
-				$api = new AcumbamailAPI('', $options['auth_token']);
-				$api->loguinWoocommerce($current_user, $cart);
-				delete_option('custom_user_logged_in');
-			}
-		}
+// Marks the login per user (not site-wide), so concurrent logins do not consume each other's notice
+function acumbamail_custom_action_after_login($user_login, $user) {
+	// Site-wide flag used up to 2.0.29 (checked here, on login, to avoid a query on every page)
+	if (get_option('custom_user_logged_in') !== false) {
+		delete_option('custom_user_logged_in');
+	}
+	if ($user instanceof WP_User && acumbamail_cart_enabled_options()) {
+		update_user_meta($user->ID, '_acumbamail_login_pending', '1');
 	}
 }
 
+// Sends the login notice on the first page the user loads after logging in
+function acumbamail_check_cart_after_login() {
+	if (!is_user_logged_in()) {
+		return;
+	}
+	$current_user = wp_get_current_user();
+	if (!get_user_meta($current_user->ID, '_acumbamail_login_pending', true)) {
+		return;
+	}
+	delete_user_meta($current_user->ID, '_acumbamail_login_pending');
+
+	$options = acumbamail_cart_enabled_options();
+	if (!$options || !function_exists('WC') || is_null(WC())) {
+		return;
+	}
+	// Nothing to link when the cart is empty; later cart events already identify the customer
+	$cart = WC()->cart;
+	if (!$cart || sizeof($cart->get_cart()) == 0) {
+		return;
+	}
+	$api = new AcumbamailAPI('', $options['auth_token']);
+	$api->loguinWoocommerce($current_user, $cart);
+}
+
+/**
+ * Remembers, for the current request only, the cart items already notified as a quantity change.
+ * Adding a product that is already in the cart fires both woocommerce_cart_item_set_quantity and
+ * woocommerce_add_to_cart; this avoids a second API call for the same item.
+ */
+function acumbamail_woocommerce_cart_item_notified( $cart_item_key, $set = false ) {
+	static $keys = array();
+	if ( $set ) {
+		$keys[ $cart_item_key ] = true;
+	}
+	return isset( $keys[ $cart_item_key ] );
+}
+
 function acumbamail_woocommerce_add_to_cart($cart_id) {
+	// Already sent as a quantity change in this request (product that was already in the cart)
+	if ( acumbamail_woocommerce_cart_item_notified( $cart_id ) ) {
+		return;
+	}
 	if (function_exists('WC') && !is_null(WC())) {
 		$options = get_option('acumbamail_options');
 
@@ -213,7 +244,11 @@ function acumbamail_woocommerce_cart_item_set_quantity($cart_item_key, $quantity
 		if (!empty($options) && !empty($options['auth_token']) && !empty($options['state_cart']) && $options['state_cart'] == "enabled") {
    			$api = new AcumbamailAPI('', $options['auth_token']);
 			if (WC()->cart && !is_null(WC()->cart)) {
+				// WooCommerce fires this hook before recalculating the totals when the quantity changes
+				// from the cart page or when adding a product already in the cart
+				WC()->cart->calculate_totals();
    				$api->submitWoocommerceCart(WC()->cart, "change_quantity", $cart_item_key);
+				acumbamail_woocommerce_cart_item_notified( $cart_item_key, true );
 			}
 		}
 	}
@@ -286,7 +321,7 @@ function acumbamail_load_textdomain() {
     //load_plugin_textdomain( 'acumbamail-signup-forms', false, dirname(plugin_basename(__FILE__)) . '/languages' );
 }
 
-function register_acumbamail_widget() {
+function acumbamail_register_widget() {
     register_widget('Acumbamail_Widget');
 }
 
@@ -460,7 +495,7 @@ function acumbamail_register_woocommerce_cart_section($api) {
 
         add_settings_field('acumbamail_woocommerce_enabled_cart',
             __('Settings status', 'acumbamail-signup-forms') . ': ',
-            'acumba_state_cart',
+            'acumbamail_state_cart_field',
             'acumbamail_woocommerce_cart',
             'acumbamail_woocommerce_cart'
         );
@@ -468,7 +503,7 @@ function acumbamail_register_woocommerce_cart_section($api) {
         add_settings_field(
             'acumbamail_woo_cart_update_state_button',
             '',
-            'acumba_state_cart_button',
+            'acumbamail_state_cart_button_field',
             'acumbamail_woocommerce_cart',
             'acumbamail_woocommerce_cart'
         );
@@ -516,12 +551,12 @@ function acumbamail_admin_init() {
 
     acumbamail_register_settings_section($api, $lists, $forms);
     acumbamail_register_woocommerce_settings_section($api, $lists);
-    if (min_version_cart()) {
+    if (acumbamail_min_version_cart()) {
         acumbamail_register_woocommerce_cart_section($api);
     }
 }
 
-function compose_options_for_select_html_field($options, $selected_value) {
+function acumbamail_compose_options_for_select_html_field($options, $selected_value) {
     foreach ($options as $key => $value) {
         $selected = '';
         if ($selected_value == $key) {
@@ -642,7 +677,7 @@ function acumbamail_woocommerce_double_optin_field() {
     // Hidden field so that unchecking the checkbox is saved (options are merged on save)
     echo "<input type='hidden' name='acumbamail_options[woocommerce_double_optin]' value='0'>";
     echo "<input id='acumbamail_woocommerce_double_optin' name='acumbamail_options[woocommerce_double_optin]' type='checkbox' value='1' " . checked(acumbamail_woocommerce_double_optin_enabled(), true, false) . ">";
-    echo "<p class='description' style='max-width:600px'>" . esc_html__('Recommended. Customers must confirm their subscription by email before becoming active subscribers. As the data controller, you decide which consent method the regulations that apply to you require.', 'acumbamail-signup-forms') . "</p>";
+    echo "<p class='description' style='max-width:600px'>" . esc_html__('Recommended. Customers become active subscribers only after confirming by email. As the data controller, it is up to you to decide how to collect and record their consent.', 'acumbamail-signup-forms') . "</p>";
 }
 
 function acumbamail_woocommerce_subscribe_statuses_field() {
@@ -669,7 +704,7 @@ function acumbamail_list_id_field($additional_args) {
     else {
         echo "<select id='acumbamail_" . esc_attr($additional_args['field_name']) . "' name='acumbamail_options[" . esc_attr($additional_args['field_name']) . "]'>";
         echo "<option value=-1>-- " . esc_html__("Select a list", 'acumbamail-signup-forms') . "--</option>";
-        compose_options_for_select_html_field($lists, $options[$additional_args['field_name']] ?? '');
+        acumbamail_compose_options_for_select_html_field($lists, $options[$additional_args['field_name']] ?? '');
         echo '</select>';
     }
 }
@@ -681,7 +716,7 @@ function acumbamail_form_id_field($additional_args) {
 
     echo "<select id='acumbamail_form_id' name='acumbamail_options[form_id]'>";
     echo "<option value=-1>-- " . esc_html__("Select a form", 'acumbamail-signup-forms') . "--</option>";
-    compose_options_for_select_html_field($forms, $options['form_id']);
+    acumbamail_compose_options_for_select_html_field($forms, $options['form_id']);
     echo "</select>";
 }
 
@@ -689,7 +724,7 @@ function acumbamail_options_text() {
 }
 
 function acumbamail_woocommerce_add_subscription_check_field_block() {
-	if (is_checkout_block() || is_checkout_cart_block()) {
+	if (acumbamail_is_checkout_block() || acumbamail_is_checkout_cart_block()) {
 		$options = get_option('acumbamail_options');
 
 		$subscription_sentence = __('Would you like to subscribe to our mailing list?', 'acumbamail-signup-forms');
@@ -738,7 +773,7 @@ function acumbamail_woocommerce_add_subscription_check_field($fields) {
 }
 
 function acumbamail_woocommerce_add_subscription_field_to_order_block($order, $request) {
-	if (is_checkout_block() || is_checkout_cart_block()) {
+	if (acumbamail_is_checkout_block() || acumbamail_is_checkout_cart_block()) {
 		$data = $request->get_json_params();
 		$additional_fields = $data['additional_fields'] ?? [];
 
@@ -842,7 +877,7 @@ function acumbamail_woocommerce_subscribe_client($order_id) {
     }
 }
 
-function acumba_state_cart() {
+function acumbamail_state_cart_field() {
     $options = get_option('acumbamail_options');
     $state_cart = '';
 	if (isset($options) and !empty($options) and !empty($options['state_cart'])) {
@@ -851,7 +886,7 @@ function acumba_state_cart() {
     echo "<input id='acumbamail_state_cart' name='acumbamail_options[state_cart]' size=20 type='text' disabled value='" . esc_attr($state_cart) . "'>";
 }
 
-function acumba_state_cart_button() {
+function acumbamail_state_cart_button_field() {
     echo "<button id='acumbamail_woo_cart_update_state_button' class='button button-secondary'>" . esc_html__('Update', 'acumbamail-signup-forms') . "</button>";
 }
 
@@ -870,9 +905,12 @@ function acumbamail_update_state_cart() {
     if (!empty($options) && !empty($options['auth_token'])) {
         $api = new AcumbamailAPI('', $options['auth_token']);
         $activate_cart = $api->isActivateCart();
-        $options['state_cart'] = $activate_cart['status'];
-        update_option('acumbamail_options', $options);
-        echo esc_html($activate_cart['status']);
+        // Only update when Acumbamail answered; on an API error keep the current state
+        if (is_array($activate_cart) && isset($activate_cart['status'])) {
+            $options['state_cart'] = $activate_cart['status'];
+            update_option('acumbamail_options', $options);
+        }
+        echo esc_html(isset($options['state_cart']) ? $options['state_cart'] : '');
     }
     wp_die();
 }

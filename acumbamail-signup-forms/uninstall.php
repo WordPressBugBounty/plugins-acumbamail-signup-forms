@@ -5,17 +5,19 @@ if ( !defined( 'WP_UNINSTALL_PLUGIN' ) )
 
 delete_option('acumbamail_options');
 delete_option('acumbamail_woo_statuses_since');
+delete_option('custom_user_logged_in');
+delete_metadata('user', 0, '_acumbamail_login_pending', '', true);
 
 try {
-    $translation_files = glob(WP_CONTENT_DIR . '/languages/plugins/acumbamail-signup-forms-es_ES.*');
-    if ($translation_files) {
-        foreach ($translation_files as $file) {
-            if (is_file($file)) {
-                wp_delete_file($file);
+    $acumbamail_translation_files = glob(WP_CONTENT_DIR . '/languages/plugins/acumbamail-signup-forms-es_ES.*');
+    if ($acumbamail_translation_files) {
+        foreach ($acumbamail_translation_files as $acumbamail_file) {
+            if (is_file($acumbamail_file)) {
+                wp_delete_file($acumbamail_file);
             }
         }
     }
-} catch (Exception $error) {
-    //error_log($error->getMessage());
+} catch (Exception $acumbamail_error) {
+    //error_log($acumbamail_error->getMessage());
 }
 ?>

@@ -7,7 +7,7 @@ Requires PHP: 7.4
 WC requires at least: 3.6
 WC tested up to: 11.2
 WooCommerce HPOS Compatibility: true
-Stable tag: 2.0.29
+Stable tag: 2.0.30
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -48,6 +48,14 @@ Más información:
 https://acumbamail.com/integraciones/wordpress/
 
 == Changelog ==
+= 2.0.30 =
+* Abandoned cart: only customers who are logged in are identified
+* Abandoned cart fixes
+* Fewer requests to Acumbamail when adding a product that is already in the cart
+* Abandoned cart cookies are now more secure
+* Clearer help text for the double opt-in setting
+* Code improvements
+
 = 2.0.29 =
 * WooCommerce: new option to send a confirmation email (double opt-in) for checkout subscriptions
 * WooCommerce: new option to also subscribe customers when the order changes to Completed or On hold

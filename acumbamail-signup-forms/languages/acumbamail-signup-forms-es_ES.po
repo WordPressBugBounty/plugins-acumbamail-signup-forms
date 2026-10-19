@@ -306,8 +306,8 @@ msgstr "Estados del pedido que suscriben al cliente"
 msgid "Not optional"
 msgstr "No opcional"
 
-msgid "Recommended. Customers must confirm their subscription by email before becoming active subscribers. As the data controller, you decide which consent method the regulations that apply to you require."
-msgstr "Recomendado. Los clientes deben confirmar su suscripción por email antes de quedar como suscriptores activos. Como responsable del tratamiento, decides qué método de consentimiento exige la normativa que te aplica."
+msgid "Recommended. Customers become active subscribers only after confirming by email. As the data controller, it is up to you to decide how to collect and record their consent."
+msgstr "Recomendado. Los clientes solo quedan como suscriptores activos tras confirmar por email. Como responsable del tratamiento, te corresponde decidir cómo recabar y acreditar su consentimiento."
 
 msgid "Customers are subscribed when their order changes to one of these statuses. Only once per order, so they receive a single confirmation email."
 msgstr "El cliente se suscribe cuando su pedido pasa a uno de estos estados. Solo una vez por pedido, por lo que recibirá un único email de confirmación."
