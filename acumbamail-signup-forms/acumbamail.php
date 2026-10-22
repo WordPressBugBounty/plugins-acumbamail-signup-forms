@@ -4,7 +4,7 @@
    Plugin Name: Acumbamail
    Plugin URI: https://acumbamail.com/en/integrations/wordpress/
    Description: Integrate your Acumbamail forms in your Wordpress pages
-   Version: 2.0.30
+   Version: 2.0.31
    Author: Acumbamail
    Author URI: https://acumbamail.com
    Text Domain: acumbamail-signup-forms
@@ -20,6 +20,9 @@
 */
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
+
+// Keep in sync with the Version header above
+define('ACUMBAMAIL_PLUGIN_VERSION', '2.0.31');
 
 require('api/acumbamail.class.php');
 require('acumbamail_widget.php');
@@ -395,7 +398,7 @@ function acumbamail_register_settings_section($api, $lists, $forms) {
                          'acumbamail_options_text',
                          'acumbamail'
     );
-    acumbamail_show_auth_token_textbox('acumbamail', 'acumbamail_main');
+    acumbamail_show_auth_token_textbox('acumbamail', 'acumbamail_main', $api);
 
     if (isset($options['auth_token']) and $lists) {
         $additional_args['field_name'] = 'list_id';
@@ -428,7 +431,7 @@ function acumbamail_register_woocommerce_settings_section($api, $lists) {
                          'acumbamail_options_text',
                          'acumbamail_woocommerce');
 
-    acumbamail_show_auth_token_textbox('acumbamail_woocommerce', 'acumbamail_woocommerce');
+    acumbamail_show_auth_token_textbox('acumbamail_woocommerce', 'acumbamail_woocommerce', $api);
 
     if ($lists) {
         $additional_args['field_name'] = 'woocommerce_list_id';
@@ -518,12 +521,14 @@ function acumbamail_register_woocommerce_cart_section($api) {
     }
 }
 
-function acumbamail_show_auth_token_textbox($page, $section) {
+function acumbamail_show_auth_token_textbox($page, $section, $api) {
     add_settings_field('acumbamail_auth_token',
                        __('Auth Token', 'acumbamail-signup-forms') . ': ',
                        'acumbamail_auth_token_field',
                        $page,
-                       $section
+                       $section,
+                       // $api has already called Acumbamail with the saved key (getLists) in acumbamail_admin_init
+                       array('key_rejected' => $api->getLastResponseCode() === 401)
     );
 }
 
@@ -592,6 +597,16 @@ function acumbamail_options_validate($input) {
         return array();
     }
 
+    // The settings page never prints the saved key, so an empty field means "keep the current one"
+    if (array_key_exists('auth_token', $input)) {
+        // A key never contains whitespace; a pasted line break would otherwise break the Authorization header
+        $input['auth_token'] = is_string($input['auth_token']) ? preg_replace('/\s+/', '', sanitize_text_field($input['auth_token'])) : '';
+        if ($input['auth_token'] === '') {
+            $saved_options = get_option('acumbamail_options');
+            $input['auth_token'] = isset($saved_options['auth_token']) ? $saved_options['auth_token'] : '';
+        }
+    }
+
     if (isset($input['woocommerce_double_optin'])) {
         $input['woocommerce_double_optin'] = $input['woocommerce_double_optin'] === '1' ? '1' : '0';
     }
@@ -609,10 +624,30 @@ function acumbamail_options_validate($input) {
     return $options;
 }
 
-function acumbamail_auth_token_field() {
+function acumbamail_auth_token_field($args) {
     $options = get_option('acumbamail_options');
-    $auth_token = empty($options) ? '' : $options['auth_token'];
-    echo "<input id='acumbamail_auth_token' name='acumbamail_options[auth_token]' size=20 type='text' value='". esc_attr($auth_token) . "'>";
+    $has_key = !empty($options['auth_token']);
+    $key_rejected = $has_key && !empty($args['key_rejected']);
+    // A valid saved key is shown masked; only its last 4 characters reach the page
+    $show_masked = $has_key && !$key_rejected;
+
+    if ($show_masked) {
+        $masked_key = str_repeat('•', max(0, strlen($options['auth_token']) - 4)) . substr($options['auth_token'], -4);
+        // No name attribute: this box only displays the masked key and is never submitted
+        echo "<div id='acumbamail_auth_token_saved'><input type='text' class='regular-text' value='" . esc_attr($masked_key) . "' readonly aria-label='" . esc_attr__('Auth Token', 'acumbamail-signup-forms') . "' data-1p-ignore data-lpignore='true' data-bwignore data-form-type='other'> ";
+        echo "<button type='button' class='button button-primary' id='acumbamail_auth_token_change'>" . esc_html__('Change', 'acumbamail-signup-forms') . "</button></div>";
+    }
+
+    echo "<div id='acumbamail_auth_token_edit'" . ($show_masked ? " hidden" : "") . ">";
+    // Keeps browsers and password managers from autofilling the WordPress login password, which would replace the key on save
+    echo "<input id='acumbamail_auth_token' name='acumbamail_options[auth_token]' class='regular-text' type='password' value='' autocomplete='new-password' data-1p-ignore data-lpignore='true' data-bwignore data-form-type='other'>";
+    if ($show_masked) {
+        echo " <button type='button' class='button button-primary' id='acumbamail_auth_token_cancel'>" . esc_html__('Cancel', 'acumbamail-signup-forms') . "</button>";
+        echo "<p class='description'>" . esc_html__('A key is already saved. Leave the field empty to keep it, or enter a new one to replace it.', 'acumbamail-signup-forms') . "</p>";
+    } elseif ($key_rejected) {
+        echo "<p class='description'>" . esc_html__('Acumbamail rejected the saved key. Enter a valid key.', 'acumbamail-signup-forms') . "</p>";
+    }
+    echo "</div>";
 }
 
 function acumbamail_subscription_sentence_field() {

@@ -66,6 +66,19 @@
 </div>
 
 <script type="text/javascript">
+    if (document.getElementById('acumbamail_auth_token_change')) {
+        document.getElementById('acumbamail_auth_token_change').addEventListener('click', function() {
+            document.getElementById('acumbamail_auth_token_saved').hidden = true;
+            document.getElementById('acumbamail_auth_token_edit').hidden = false;
+            document.getElementById('acumbamail_auth_token').focus();
+        });
+        document.getElementById('acumbamail_auth_token_cancel').addEventListener('click', function() {
+            // An empty field keeps the saved key on save
+            document.getElementById('acumbamail_auth_token').value = '';
+            document.getElementById('acumbamail_auth_token_edit').hidden = true;
+            document.getElementById('acumbamail_auth_token_saved').hidden = false;
+        });
+    }
     if (document.getElementById('acumbamail_woo_cart_update_state_button')) {
         document.getElementById('acumbamail_woo_cart_update_state_button').addEventListener('click', function() {
             fetch(ajaxurl, {

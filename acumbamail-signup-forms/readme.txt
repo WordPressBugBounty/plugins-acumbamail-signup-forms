@@ -7,7 +7,7 @@ Requires PHP: 7.4
 WC requires at least: 3.6
 WC tested up to: 11.2
 WooCommerce HPOS Compatibility: true
-Stable tag: 2.0.30
+Stable tag: 2.0.31
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -48,6 +48,12 @@ Más información:
 https://acumbamail.com/integraciones/wordpress/
 
 == Changelog ==
+= 2.0.31 =
+* Security: the API key is sent in the Authorization header instead of the request body
+* Security: requests to Acumbamail always verify the SSL certificate
+* Security: the plugin settings no longer show the API key, only its last 4 characters. Use the Change button to replace it
+* Abandoned cart: the cart currency is sent separately from the total
+
 = 2.0.30 =
 * Abandoned cart: only customers who are logged in are identified
 * Abandoned cart fixes

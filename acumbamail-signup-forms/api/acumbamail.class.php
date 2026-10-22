@@ -3,13 +3,12 @@
 
 class AcumbamailAPI {
     private $auth_token;
-    private $customer_id;
     // HTTP code of the last API call (0 on connection error)
     private $last_response_code = 0;
 
+    // $customer_id is no longer sent (the API identifies the account by its key); kept for existing callers
     function __construct($customer_id, $auth_token){
         $this->auth_token = $auth_token;
-        $this->customer_id = $customer_id;
     }
 
     public function getLastResponseCode() {
@@ -456,6 +455,18 @@ class AcumbamailAPI {
 	}
 
 	/**
+	 * Currency of the cart, sent apart from cart_total (which keeps the symbol appended, as an HTML entity,
+	 * for servers that only read cart_total). Must go in every call that sends cart_total: the server
+	 * clears the stored symbol when a cart update does not include it.
+	 */
+	private function add_cart_currency($data, $cart) {
+		$data['cart_currency_symbol'] = html_entity_decode(get_woocommerce_currency_symbol(), ENT_QUOTES, 'UTF-8');
+		$data['cart_currency'] = get_woocommerce_currency();
+		$data['cart_amount'] = wc_format_decimal($cart->get_total('edit'));
+		return $data;
+	}
+
+	/**
 	 * Email sent with order events: the account email of the order's customer, never the
 	 * current user (an admin can complete the order, or the gateway can notify with no session).
 	 * Guest orders are anonymous.
@@ -635,6 +646,7 @@ class AcumbamailAPI {
 		$data['cart_product'] = wp_json_encode($product);
 		$data['cart_contents_total'] = $cart->get_cart_contents_count();
 		$data['cart_total']= $cart->get_total('edit') . " " . get_woocommerce_currency_symbol();
+		$data = $this->add_cart_currency($data, $cart);
        	$data['registered'] = is_user_logged_in();
 
 		$this->callAPI($request,$data);
@@ -677,6 +689,7 @@ class AcumbamailAPI {
 		$data['cart_item_key_remove'] = $cart_item_key_remove;
 		$cart->calculate_totals();
 		$data['cart_total'] =  $cart->get_total('edit') . " " . get_woocommerce_currency_symbol();
+		$data = $this->add_cart_currency($data, $cart);
 		$data['cart_contents_total'] = $cart->get_cart_contents_count();
 		$data['cart_id'] = $this->get_or_generate_id_cart();
 		$this->callAPI($request,$data);
@@ -723,6 +736,7 @@ class AcumbamailAPI {
         $data['cart_product'] = wp_json_encode($product);
         $data['cart_contents_total'] = $cart->get_cart_contents_count();
         $data['cart_total']= $cart->get_total('edit') . " " . get_woocommerce_currency_symbol();
+        $data = $this->add_cart_currency($data, $cart);
         $data['cart_event'] = $event;
         $data['cart_id'] = $this->get_or_generate_id_cart();
         $data['registered'] = is_user_logged_in();
@@ -751,8 +765,6 @@ class AcumbamailAPI {
         }
 
         $fields = array(
-            'customer_id' => $this->customer_id,
-            'auth_token'=> $this->auth_token,
             'response_type' => 'json',
         );
 
@@ -764,8 +776,11 @@ class AcumbamailAPI {
             'method' => 'POST',
             'httpversion' => '1.0',
             'blocking' => true,
+            'sslverify' => true,
             'headers' => array(
-                'header' => 'Content-type: application/x-www-form-urlencoded'
+                'Content-Type' => 'application/x-www-form-urlencoded',
+                'Authorization' => 'Bearer ' . $this->auth_token,
+                'X-Acumbamail-Plugin' => 'wordpress/' . ACUMBAMAIL_PLUGIN_VERSION,
             ),
             'body' => $fields
         ));

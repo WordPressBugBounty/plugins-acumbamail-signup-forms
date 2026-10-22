@@ -306,6 +306,18 @@ msgstr "Estados del pedido que suscriben al cliente"
 msgid "Not optional"
 msgstr "No opcional"
 
+msgid "Change"
+msgstr "Cambiar"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Acumbamail rejected the saved key. Enter a valid key."
+msgstr "Acumbamail ha rechazado la clave guardada. Escribe una clave válida."
+
+msgid "A key is already saved. Leave the field empty to keep it, or enter a new one to replace it."
+msgstr "Ya hay una clave guardada. Deja el campo vacío para conservarla o escribe una nueva para cambiarla."
+
 msgid "Recommended. Customers become active subscribers only after confirming by email. As the data controller, it is up to you to decide how to collect and record their consent."
 msgstr "Recomendado. Los clientes solo quedan como suscriptores activos tras confirmar por email. Como responsable del tratamiento, te corresponde decidir cómo recabar y acreditar su consentimiento."
 
