@@ -7,7 +7,7 @@ Requires PHP: 7.4
 WC requires at least: 3.6
 WC tested up to: 11.2
 WooCommerce HPOS Compatibility: true
-Stable tag: 2.0.31
+Stable tag: 2.0.32
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -48,6 +48,15 @@ Más información:
 https://acumbamail.com/integraciones/wordpress/
 
 == Changelog ==
+= 2.0.32 =
+* Abandoned cart: free accounts see a notice with a link to the plans
+* Abandoned cart: the status is shown as Being executed or Stopped
+* Abandoned cart: the integration stops when Acumbamail rejects it, until Update is pressed
+* Abandoned cart: requests to Acumbamail no longer slow down the shop when the API is slow
+* Settings: a new API key is checked with Acumbamail before it is saved
+* Settings: pressing Enter in a field saves the settings instead of deleting them
+* Settings: the list fields are shown even when the account has no lists yet
+
 = 2.0.31 =
 * Security: the API key is sent in the Authorization header instead of the request body
 * Security: requests to Acumbamail always verify the SSL certificate

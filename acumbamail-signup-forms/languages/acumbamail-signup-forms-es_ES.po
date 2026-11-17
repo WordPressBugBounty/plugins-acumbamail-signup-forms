@@ -92,15 +92,25 @@ msgstr "Pulse Actualizar para comprobar la integración con carrito abandonado"
 msgid "Settings status"
 msgstr "Estado de la configuración"
 
-#: acumbamail.php:467
-msgid "Abandoned cart integration is only available from Basic plan"
-msgstr ""
-"La integración de carrito abandonado sólo esta disponible a partir de la "
-"tarifa básica"
+#: acumbamail.php:510
+msgid "Abandoned cart"
+msgstr "Carrito abandonado"
 
-#: acumbamail.php:468
-msgid "View other pricing plans"
-msgstr "Ver otras tarifas"
+#: acumbamail.php:923
+msgid "Being executed"
+msgstr "En ejecución"
+
+#: acumbamail.php:926
+msgid "Stopped"
+msgstr "Parado"
+
+#: acumbamail.php:517
+msgid "Abandoned cart is not included in free accounts."
+msgstr "El carrito abandonado no está incluido en las cuentas gratuitas."
+
+#: acumbamail.php:518
+msgid "View plans"
+msgstr "Ver planes"
 
 #: acumbamail.php:477
 msgid "Auth Token"
@@ -115,7 +125,7 @@ msgid ""
 "Check that you have created lists and that your hosting allows incoming "
 "traffic from Acumbamail"
 msgstr ""
-"Asegúrate de que has creados al menos una lista y de que tu hosting permita "
+"Asegúrate de que has creado al menos una lista y de que tu hosting permita "
 "tráfico entrante desde Acumbamail"
 
 #: acumbamail.php:584
@@ -327,3 +337,11 @@ msgstr "El cliente se suscribe cuando su pedido pasa a uno de estos estados. Sol
 #, php-format
 msgid "Could not connect to Acumbamail. Error %d"
 msgstr "No se ha podido establecer conexión con Acumbamail. Error %d"
+
+#: acumbamail.php:610
+msgid "Acumbamail did not accept the auth token and it has not been saved."
+msgstr "Acumbamail no ha aceptado el auth token y no se ha guardado."
+
+#: acumbamail.php:612
+msgid "The auth token could not be checked with Acumbamail and it has not been saved. Please try again later."
+msgstr "No se ha podido comprobar el auth token con Acumbamail y no se ha guardado. Inténtelo de nuevo más tarde."

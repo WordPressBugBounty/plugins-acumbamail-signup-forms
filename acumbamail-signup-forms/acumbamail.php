@@ -4,7 +4,7 @@
    Plugin Name: Acumbamail
    Plugin URI: https://acumbamail.com/en/integrations/wordpress/
    Description: Integrate your Acumbamail forms in your Wordpress pages
-   Version: 2.0.31
+   Version: 2.0.32
    Author: Acumbamail
    Author URI: https://acumbamail.com
    Text Domain: acumbamail-signup-forms
@@ -22,7 +22,7 @@
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 // Keep in sync with the Version header above
-define('ACUMBAMAIL_PLUGIN_VERSION', '2.0.31');
+define('ACUMBAMAIL_PLUGIN_VERSION', '2.0.32');
 
 require('api/acumbamail.class.php');
 require('acumbamail_widget.php');
@@ -400,7 +400,7 @@ function acumbamail_register_settings_section($api, $lists, $forms) {
     );
     acumbamail_show_auth_token_textbox('acumbamail', 'acumbamail_main', $api);
 
-    if (isset($options['auth_token']) and $lists) {
+    if (isset($options['auth_token']) and is_array($lists)) {
         $additional_args['field_name'] = 'list_id';
 	    $additional_args['lists'] = $lists;
 
@@ -433,7 +433,7 @@ function acumbamail_register_woocommerce_settings_section($api, $lists) {
 
     acumbamail_show_auth_token_textbox('acumbamail_woocommerce', 'acumbamail_woocommerce', $api);
 
-    if ($lists) {
+    if (is_array($lists)) {
         $additional_args['field_name'] = 'woocommerce_list_id';
         $additional_args['lists'] = $lists;
 
@@ -467,11 +467,10 @@ function acumbamail_register_woocommerce_settings_section($api, $lists) {
 
 }
 
-function acumbamail_register_woocommerce_cart_section($api) {
+function acumbamail_register_woocommerce_cart_section($api, $lists_loaded) {
 
     $authorized = FALSE;
-    $show = FALSE;
-    $actv = FALSE;
+    $free_account = FALSE;
     $options = get_option('acumbamail_options');
     if (!empty($options) && !empty($options['auth_token'])) {
         $api = new AcumbamailAPI('', $options['auth_token']);
@@ -479,12 +478,8 @@ function acumbamail_register_woocommerce_cart_section($api) {
         if (!empty($authorizedCart['auth'])) {
             $authorized = $authorizedCart['auth'];
         }
-        if (!empty($authorizedCart['show'])) {
-            $show = $authorizedCart['show'];
-        }
-        if (!empty($authorizedCart['actv'])) {
-            $actv = $authorizedCart['actv'];
-        }
+        // With a key that loads the lists, Acumbamail only rejects this call (401) for free accounts
+        $free_account = $lists_loaded && $api->getLastResponseCode() == 401;
 
         $options['authorized_cart'] = $authorized;
         update_option('acumbamail_options', $options);
@@ -510,15 +505,17 @@ function acumbamail_register_woocommerce_cart_section($api) {
             'acumbamail_woocommerce_cart',
             'acumbamail_woocommerce_cart'
         );
-    } else {
-        if ((isset($options) && !empty($options['auth_token']) && !$show && $actv)) {
-            add_action( 'admin_notices', function () {
-                echo "<div class='notice notice-info'><p><strong>". esc_html__('Abandoned cart integration is only available from Basic plan','acumbamail-signup-forms') .".</strong>";
-                echo "<a target='_blank' href='" . esc_url('https://acumbamail.com/account/rate/') ."'> " . esc_html__('View other pricing plans', 'acumbamail-signup-forms') . "</a>";
-                echo "</p></div>";
-            } );
-        }
+    } elseif ($free_account) {
+        add_settings_section('acumbamail_woocommerce_cart',
+                            __('Abandoned cart', 'acumbamail-signup-forms'),
+                            'acumbamail_cart_free_account_text',
+                            'acumbamail_woocommerce_cart');
     }
+}
+
+function acumbamail_cart_free_account_text() {
+    echo "<div class='notice notice-info inline'><p>" . esc_html__('Abandoned cart is not included in free accounts.', 'acumbamail-signup-forms');
+    echo " <a target='_blank' rel='noopener' href='" . esc_url('https://acumbamail.com/account/rate/') . "'>" . esc_html__('View plans', 'acumbamail-signup-forms') . "</a></p></div>";
 }
 
 function acumbamail_show_auth_token_textbox($page, $section, $api) {
@@ -557,7 +554,7 @@ function acumbamail_admin_init() {
     acumbamail_register_settings_section($api, $lists, $forms);
     acumbamail_register_woocommerce_settings_section($api, $lists);
     if (acumbamail_min_version_cart()) {
-        acumbamail_register_woocommerce_cart_section($api);
+        acumbamail_register_woocommerce_cart_section($api, is_array($lists));
     }
 }
 
@@ -601,9 +598,22 @@ function acumbamail_options_validate($input) {
     if (array_key_exists('auth_token', $input)) {
         // A key never contains whitespace; a pasted line break would otherwise break the Authorization header
         $input['auth_token'] = is_string($input['auth_token']) ? preg_replace('/\s+/', '', sanitize_text_field($input['auth_token'])) : '';
+        $saved_options = get_option('acumbamail_options');
+        $saved_token = isset($saved_options['auth_token']) ? $saved_options['auth_token'] : '';
         if ($input['auth_token'] === '') {
-            $saved_options = get_option('acumbamail_options');
-            $input['auth_token'] = isset($saved_options['auth_token']) ? $saved_options['auth_token'] : '';
+            $input['auth_token'] = $saved_token;
+        } elseif ($input['auth_token'] !== $saved_token) {
+            // Checked before replacing the saved one: a mistyped key would silently stop carts and subscriptions
+            $candidate_api = new AcumbamailAPI('', $input['auth_token']);
+            if (!is_array($candidate_api->getLists())) {
+                if ($candidate_api->getLastResponseCode() == 401) {
+                    $message = __('Acumbamail did not accept the auth token and it has not been saved.', 'acumbamail-signup-forms');
+                } else {
+                    $message = __('The auth token could not be checked with Acumbamail and it has not been saved. Please try again later.', 'acumbamail-signup-forms');
+                }
+                add_settings_error('acumbamail_options', 'acumbamail_auth_token', $message, 'error');
+                $input['auth_token'] = $saved_token;
+            }
         }
     }
 
@@ -656,7 +666,7 @@ function acumbamail_subscription_sentence_field() {
     if (!empty($options) && !empty($options['subscription_sentence'])) {
         $value = $options['subscription_sentence'];
     }
-    echo "<input id='subscription_sentence_field' name='acumbamail_options[subscription_sentence]' size=20 type='text' value='" . esc_attr($value) . "'>";
+    echo "<input id='subscription_sentence_field' name='acumbamail_options[subscription_sentence]' class='regular-text' type='text' value='" . esc_attr($value) . "'>";
 }
 
 /**
@@ -918,7 +928,17 @@ function acumbamail_state_cart_field() {
 	if (isset($options) and !empty($options) and !empty($options['state_cart'])) {
 		 $state_cart = $options['state_cart'];
 	}
-    echo "<input id='acumbamail_state_cart' name='acumbamail_options[state_cart]' size=20 type='text' disabled value='" . esc_attr($state_cart) . "'>";
+    echo "<input id='acumbamail_state_cart' name='acumbamail_options[state_cart]' size=20 type='text' disabled value='" . esc_attr(acumbamail_cart_state_label($state_cart)) . "'>";
+}
+
+function acumbamail_cart_state_label($state_cart) {
+    if ($state_cart === 'enabled') {
+        return __('Being executed', 'acumbamail-signup-forms');
+    }
+    if ($state_cart === 'disabled') {
+        return __('Stopped', 'acumbamail-signup-forms');
+    }
+    return '';
 }
 
 function acumbamail_state_cart_button_field() {
@@ -945,7 +965,7 @@ function acumbamail_update_state_cart() {
             $options['state_cart'] = $activate_cart['status'];
             update_option('acumbamail_options', $options);
         }
-        echo esc_html(isset($options['state_cart']) ? $options['state_cart'] : '');
+        echo esc_html(acumbamail_cart_state_label(isset($options['state_cart']) ? $options['state_cart'] : ''));
     }
     wp_die();
 }

@@ -2,6 +2,10 @@
 /* PHP Class for Acumbamail API */
 
 class AcumbamailAPI {
+    const CART_REQUESTS = array('addItemCart', 'removeItemCart', 'loginUserCart', 'newOrderCart', 'paymentCompleteCart');
+    // Cart calls run inside the shopper's request: a slow API must not block the shop
+    const CART_TIMEOUT = 3;
+
     private $auth_token;
     // HTTP code of the last API call (0 on connection error)
     private $last_response_code = 0;
@@ -755,6 +759,16 @@ class AcumbamailAPI {
     }
 
 
+    // Acumbamail only answers 401 to a cart call when it does not accept carts from this account (key, blocked or
+    // free account, cart integration disabled), never for the cart data: stop sending until "Update" is pressed
+    private function disable_cart() {
+        $options = get_option('acumbamail_options');
+        if (is_array($options) && isset($options['state_cart']) && $options['state_cart'] !== 'disabled') {
+            $options['state_cart'] = 'disabled';
+            update_option('acumbamail_options', $options);
+        }
+    }
+
     // Realiza la llamada a la API de Acumbamail con los datos proporcionados
     function callAPI($request, $data = array()){
         $url = "https://acumbamail.com/api/1/".$request.'/';
@@ -772,7 +786,7 @@ class AcumbamailAPI {
             $fields=array_merge($fields,$data);
         }
 
-        $response = @wp_remote_post( $url, array(
+        $args = array(
             'method' => 'POST',
             'httpversion' => '1.0',
             'blocking' => true,
@@ -783,7 +797,12 @@ class AcumbamailAPI {
                 'X-Acumbamail-Plugin' => 'wordpress/' . ACUMBAMAIL_PLUGIN_VERSION,
             ),
             'body' => $fields
-        ));
+        );
+        // The rest of the calls keep the WordPress default timeout
+        if (in_array($request, self::CART_REQUESTS, true)) {
+            $args['timeout'] = self::CART_TIMEOUT;
+        }
+        $response = @wp_remote_post($url, $args);
 
         if (is_wp_error($response)) {
             $this->log_error($request . ' error: ' . $response->get_error_message());
@@ -791,12 +810,17 @@ class AcumbamailAPI {
         }
         $response_code = (int) wp_remote_retrieve_response_code($response);
         $this->last_response_code = $response_code;
+        if ($response_code == 401 && in_array($request, self::CART_REQUESTS, true)) {
+            $this->disable_cart();
+        }
         // Some methods (e.g. addSubscriber) answer 201 on success
         if ($response_code < 200 || $response_code >= 300) {
             $this->log_error($request . ' error: HTTP ' . $response_code);
             // Never print here: this also runs during checkout and order status changes, where output breaks
             // JSON responses and redirects. Show the error as an admin notice instead.
-            if (is_admin() && !wp_doing_ajax()) {
+            // A free account gets a 401 from authorizedCart: the settings page explains it instead
+            $free_account_cart_check = $request === 'authorizedCart' && $response_code == 401;
+            if (is_admin() && !wp_doing_ajax() && !$free_account_cart_check) {
                 add_action('admin_notices', function () use ($response_code) {
                     /* translators: %d: HTTP response code */
                     echo '<div class="notice notice-error"><p><strong>' . esc_html(sprintf(__('Could not connect to Acumbamail. Error %d', 'acumbamail-signup-forms'), $response_code)) . '</strong></p></div>';

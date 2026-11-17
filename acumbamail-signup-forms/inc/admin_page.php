@@ -4,13 +4,15 @@
         <div id="post-body" class="metabox-holder columns-2">
             <div id="post-body-content">
                 <h1><?php esc_html_e('Acumbamail Plugin', 'acumbamail-signup-forms') ?></h1>
+                <?php settings_errors('acumbamail_options') ?>
                 <form method="POST" action="options.php" name="acumbamail_configuration">
                     <?php settings_fields('acumbamail_options') ?>
                     <?php do_settings_sections($acumbamail_settings_section) ?>
                     <?php echo '<br>';
-                    submit_button(__('Delete forms', 'acumbamail-signup-forms'), 'delete button-primary', 'reset', false);
+                    // Save goes first: pressing Enter in a field submits with the first button, and Delete forms wipes every setting
+                    submit_button(__('Save changes', 'acumbamail-signup-forms'), 'button-primary', 'submit', false);
                     echo '  ';
-                    submit_button(__('Save changes', 'acumbamail-signup-forms'), 'button-primary', 'submit', false); ?>
+                    submit_button(__('Delete forms', 'acumbamail-signup-forms'), 'delete button-primary', 'reset', false); ?>
                 </form>
                 <div style="margin-top:14px"></div>
                 <?php if (!empty($acumbamail_cart_section)) { do_settings_sections($acumbamail_cart_section); } ?>
